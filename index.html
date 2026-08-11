@@ -1,0 +1,2367 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=5" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="theme-color" content="#f2f2f7" media="(prefers-color-scheme: light)" />
+<meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)" />
+<title>LLM Council</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;450;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   macOS-flavoured design system
+   ============================================================ */
+:root{
+  --sys-blue:#007aff; --sys-purple:#af52de; --sys-green:#34c759;
+  --sys-red:#ff3b30; --sys-orange:#ff9500; --sys-teal:#30b0c7; --sys-pink:#ff2d55;
+
+  --bg:#eef0f4;
+  --bg-2:#f7f8fa;
+  --panel:rgba(255,255,255,.78);
+  --panel-solid:#ffffff;
+  --chrome:rgba(246,247,250,.72);
+  --fill:rgba(118,118,128,.12);
+  --fill-2:rgba(118,118,128,.08);
+  --ink:#1d1d1f; --ink-2:#54565b; --ink-3:#8e8e93;
+  --line:rgba(60,60,67,.13); --line-2:rgba(60,60,67,.07);
+  --accent:var(--sys-blue); --chair:var(--sys-purple);
+  --ok:#1a8f45; --warn:#b8720a; --err:#d02a20; --err-soft:rgba(255,59,48,.08);
+
+  --r-xl:22px; --r-lg:16px; --r:12px; --r-sm:9px;
+  --shadow-1:0 1px 1px rgba(0,0,0,.04), 0 2px 6px rgba(0,0,0,.05);
+  --shadow-2:0 4px 14px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.05);
+  --shadow-3:0 20px 60px rgba(0,0,0,.22), 0 2px 8px rgba(0,0,0,.10);
+  --knob:0 1px 3px rgba(0,0,0,.16), 0 0 0 .5px rgba(0,0,0,.04);
+
+  --spring:cubic-bezier(.32,.72,0,1);
+  --ease:cubic-bezier(.4,0,.2,1);
+  --mono:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+  --sans:-apple-system,BlinkMacSystemFont,'SF Pro Text','SF Pro Display','Inter',system-ui,'Segoe UI',sans-serif;
+}
+[data-theme="dark"]{
+  --bg:#101013;
+  --bg-2:#17171b;
+  --panel:rgba(30,30,34,.74);
+  --panel-solid:#1e1e22;
+  --chrome:rgba(24,24,28,.72);
+  --fill:rgba(120,120,128,.24); --fill-2:rgba(120,120,128,.14);
+  --ink:#f2f2f7; --ink-2:#b4b4bb; --ink-3:#8a8a90;
+  --line:rgba(255,255,255,.10); --line-2:rgba(255,255,255,.06);
+  --accent:#0a84ff; --chair:#bf5af2;
+  --ok:#30d158; --warn:#ffd60a; --err:#ff453a; --err-soft:rgba(255,69,58,.12);
+  --shadow-1:0 1px 2px rgba(0,0,0,.5);
+  --shadow-2:0 6px 18px rgba(0,0,0,.55);
+  --shadow-3:0 24px 70px rgba(0,0,0,.7);
+  --knob:0 1px 3px rgba(0,0,0,.5), 0 0 0 .5px rgba(255,255,255,.06);
+}
+
+*{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{
+  margin:0; color:var(--ink); font-family:var(--sans);
+  font-size:15px; line-height:1.55; letter-spacing:-.01em;
+  -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
+  display:flex; flex-direction:column; height:100dvh; overflow:hidden;
+  background:
+    radial-gradient(1100px 620px at 12% -8%, color-mix(in srgb,var(--accent) 11%,transparent), transparent 62%),
+    radial-gradient(900px 520px at 92% 0%, color-mix(in srgb,var(--chair) 10%,transparent), transparent 58%),
+    var(--bg);
+  transition:background-color .4s var(--ease), color .3s var(--ease);
+}
+button{font:inherit; color:inherit; cursor:pointer; font-family:var(--sans)}
+:focus-visible{outline:2.5px solid color-mix(in srgb,var(--accent) 70%,transparent); outline-offset:2px; border-radius:8px}
+::selection{background:color-mix(in srgb,var(--accent) 26%,transparent)}
+::-webkit-scrollbar{width:11px;height:11px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(130,130,140,.34);border-radius:10px;border:3px solid transparent;background-clip:content-box}
+::-webkit-scrollbar-thumb:hover{background:rgba(130,130,140,.55);background-clip:content-box}
+
+/* ---------------- animation primitives ---------------- */
+@keyframes rise{from{opacity:0;transform:translate3d(0,14px,0) scale(.985)}to{opacity:1;transform:none}}
+@keyframes popIn{from{opacity:0;transform:scale(.94)}to{opacity:1;transform:none}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes slideRight{from{opacity:0;transform:translate3d(18px,0,0)}to{opacity:1;transform:none}}
+@keyframes shimmer{to{background-position:-200% 0}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.45}}
+@keyframes blink{50%{opacity:0}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes flipIn{from{opacity:0;transform:rotateX(-12deg) translateY(10px)}to{opacity:1;transform:none}}
+.rise{animation:rise .5s var(--spring) both}
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{animation-duration:.001ms !important;animation-iteration-count:1 !important;transition-duration:.001ms !important;scroll-behavior:auto !important}
+}
+
+/* ---------------- toolbar ---------------- */
+header{
+  flex:0 0 auto; z-index:40; position:relative;
+  display:grid; grid-template-columns:1fr auto 1fr; align-items:center; gap:12px;
+  padding:10px max(14px,2.4vw); padding-top:max(10px,env(safe-area-inset-top));
+  background:var(--chrome);
+  -webkit-backdrop-filter:saturate(180%) blur(24px); backdrop-filter:saturate(180%) blur(24px);
+  border-bottom:.5px solid var(--line);
+}
+.brand{display:flex;align-items:center;gap:10px;min-width:0}
+.seal{
+  width:30px;height:30px;border-radius:9px;flex:0 0 auto;display:grid;place-items:center;
+  color:#fff;font-weight:700;font-size:12px;letter-spacing:-.4px;
+  background:linear-gradient(150deg,var(--sys-blue),var(--sys-purple));
+  box-shadow:0 2px 8px color-mix(in srgb,var(--sys-purple) 34%,transparent), inset 0 .5px 0 rgba(255,255,255,.45);
+  transition:transform .45s var(--spring);
+}
+.brand:hover .seal{transform:rotate(-6deg) scale(1.06)}
+.brand h1{font-size:15px;margin:0;font-weight:600;letter-spacing:-.35px;white-space:nowrap}
+.brand small{display:block;font-size:11px;color:var(--ink-3);font-weight:450;letter-spacing:0;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:24ch}
+.actions{display:flex;align-items:center;gap:8px;justify-self:end}
+
+/* macOS segmented control */
+.segmented{
+  position:relative; display:flex; padding:2.5px; gap:2px; border-radius:11px;
+  background:var(--fill); justify-self:center;
+  box-shadow:inset 0 0 0 .5px var(--line-2);
+}
+.segmented .knob{
+  position:absolute; top:2.5px; bottom:2.5px; left:0; border-radius:8.5px;
+  background:var(--panel-solid); box-shadow:var(--knob); z-index:0;
+  transition:transform .38s var(--spring), width .38s var(--spring);
+  will-change:transform,width;
+}
+.segmented button{
+  position:relative; z-index:1; border:none; background:none; border-radius:8.5px;
+  padding:6px 13px; font-size:13px; font-weight:530; color:var(--ink-2);
+  display:inline-flex; align-items:center; gap:6px; white-space:nowrap;
+  transition:color .25s var(--ease), transform .18s var(--ease);
+}
+.segmented button svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.segmented button[aria-pressed=true]{color:var(--ink);font-weight:600}
+.segmented button:active{transform:scale(.96)}
+.segmented[data-mode=council] .knob{background:linear-gradient(180deg,var(--panel-solid),var(--panel-solid))}
+.segmented[data-mode=council] button[aria-pressed=true]{color:var(--chair)}
+.segmented[data-mode=study] button[aria-pressed=true]{color:var(--sys-teal)}
+.segmented[data-mode=quick] button[aria-pressed=true]{color:var(--accent)}
+.segmented[data-mode=humanize] button[aria-pressed=true]{color:var(--sys-green)}
+
+.pill{
+  display:inline-flex;align-items:center;gap:7px;height:32px;padding:0 12px;border-radius:999px;
+  border:.5px solid var(--line); background:var(--fill-2); font-size:12.5px; color:var(--ink-2);
+  font-weight:500; white-space:nowrap; transition:background .2s var(--ease), transform .12s var(--ease);
+}
+.pill:hover{background:var(--fill)} .pill:active{transform:scale(.97)}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--ink-3);flex:0 0 auto;transition:background .3s}
+.dot.live{background:var(--sys-green);box-shadow:0 0 0 3px color-mix(in srgb,var(--sys-green) 20%,transparent)}
+.dot.demo{background:var(--sys-orange);box-shadow:0 0 0 3px color-mix(in srgb,var(--sys-orange) 20%,transparent);animation:pulse 2.6s var(--ease) infinite}
+.dot.bad{background:var(--sys-red);box-shadow:0 0 0 3px color-mix(in srgb,var(--sys-red) 20%,transparent)}
+
+.iconbtn{
+  min-width:34px;height:34px;padding:0 10px;border-radius:10px;border:.5px solid var(--line);
+  background:var(--fill-2); display:inline-flex;align-items:center;justify-content:center;gap:7px;
+  font-size:13px;font-weight:520;
+  transition:background .2s var(--ease), transform .12s var(--ease), border-color .2s var(--ease);
+}
+.iconbtn:hover{background:var(--fill)}
+.iconbtn:active{transform:scale(.94)}
+.iconbtn svg{width:16.5px;height:16.5px;stroke:currentColor;fill:none;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
+.hide-sm{display:inline}
+</style>
+<style>
+/* ---------------- layout ---------------- */
+main{flex:1;min-height:0;display:flex;overflow:hidden}
+#stream{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;
+  padding:24px max(14px,2.4vw) 10px; scroll-behavior:smooth; overscroll-behavior-y:contain}
+.wrap{max-width:1160px;margin:0 auto}
+
+/* ---------------- hero ---------------- */
+.hero{max-width:730px;margin:min(7vh,58px) auto;text-align:center;animation:rise .6s var(--spring) both}
+.hero .badge{
+  display:inline-flex;align-items:center;gap:7px;padding:5px 13px;border-radius:999px;
+  background:var(--fill);border:.5px solid var(--line);font-size:12px;font-weight:540;color:var(--ink-2);
+  margin-bottom:18px;
+}
+.hero .badge i{width:6px;height:6px;border-radius:50%;background:var(--accent);font-style:normal}
+.hero h2{font-size:clamp(27px,5vw,40px);line-height:1.08;letter-spacing:-1.4px;margin:0 0 13px;font-weight:640}
+.hero h2 em{font-style:normal;background:linear-gradient(100deg,var(--accent),var(--chair));
+  -webkit-background-clip:text;background-clip:text;color:transparent}
+.hero p{color:var(--ink-2);margin:0 auto 28px;max-width:50ch;font-size:15.5px}
+.suggests{display:grid;grid-template-columns:repeat(auto-fit,minmax(228px,1fr));gap:11px;text-align:left}
+.sug{
+  border:.5px solid var(--line);background:var(--panel);
+  -webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);
+  border-radius:var(--r-lg);padding:14px 15px;font-size:13.5px;color:var(--ink-2);
+  transition:transform .3s var(--spring), box-shadow .3s var(--ease), border-color .2s;
+  animation:rise .5s var(--spring) both;
+}
+.sug:nth-child(2){animation-delay:.05s}.sug:nth-child(3){animation-delay:.1s}.sug:nth-child(4){animation-delay:.15s}
+.sug:hover{transform:translateY(-3px);box-shadow:var(--shadow-2);border-color:color-mix(in srgb,var(--accent) 40%,var(--line))}
+.sug:active{transform:translateY(-1px) scale(.99)}
+.sug b{display:block;color:var(--ink);font-weight:600;font-size:14px;margin-bottom:3px;letter-spacing:-.2px}
+
+/* ---------------- turns ---------------- */
+.turn{margin-bottom:36px;animation:fadeIn .3s var(--ease) both}
+.usermsg{display:flex;justify-content:flex-end;margin-bottom:22px}
+.usermsg .bubble{
+  background:linear-gradient(180deg,color-mix(in srgb,var(--accent) 100%,transparent),color-mix(in srgb,var(--accent) 88%,#000));
+  color:#fff;padding:11px 16px;border-radius:20px 20px 6px 20px;
+  max-width:min(680px,86%);box-shadow:0 4px 14px color-mix(in srgb,var(--accent) 30%,transparent);
+  white-space:pre-wrap;word-wrap:break-word;font-size:15px;
+  animation:rise .42s var(--spring) both;
+}
+.usermsg img{display:block;max-width:230px;border-radius:12px;margin-bottom:9px}
+.modetag{
+  display:inline-flex;align-items:center;gap:5px;font-size:10.5px;font-weight:600;letter-spacing:.3px;
+  text-transform:uppercase;opacity:.8;margin-bottom:5px;
+}
+
+.stagelabel{
+  display:flex;align-items:center;gap:10px;margin:0 0 13px;
+  font-size:11px;font-weight:640;letter-spacing:.7px;text-transform:uppercase;color:var(--ink-3);
+  animation:fadeIn .4s var(--ease) both;
+}
+.stagelabel .n{
+  width:17px;height:17px;border-radius:50%;background:var(--fill);color:var(--ink-2);
+  display:grid;place-items:center;font-size:9.5px;letter-spacing:0;flex:0 0 auto;
+}
+.stagelabel::after{content:"";flex:1;height:.5px;background:var(--line)}
+.stagelabel .live{letter-spacing:0;text-transform:none;font-family:var(--mono);font-size:10.5px;color:var(--ink-3)}
+
+.grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(298px,1fr))}
+.card{
+  position:relative;background:var(--panel);
+  -webkit-backdrop-filter:saturate(180%) blur(22px);backdrop-filter:saturate(180%) blur(22px);
+  border:.5px solid var(--line);border-radius:var(--r-lg);
+  display:flex;flex-direction:column;overflow:hidden;box-shadow:var(--shadow-1);
+  animation:rise .5s var(--spring) both;
+  transition:box-shadow .3s var(--ease), transform .3s var(--spring);
+}
+.card::before{content:"";position:absolute;inset:0 0 auto 0;height:2.5px;background:var(--seatcolor,var(--accent));opacity:.95}
+.card:hover{box-shadow:var(--shadow-2)}
+.card header,.verdict header,.pack header{
+  all:unset;display:flex;align-items:center;gap:9px;padding:11px 14px;
+  border-bottom:.5px solid var(--line-2);
+}
+.avatar{
+  width:24px;height:24px;border-radius:7px;flex:0 0 auto;display:grid;place-items:center;
+  font-size:10.5px;font-weight:700;color:#fff;background:var(--seatcolor,var(--accent));
+  box-shadow:inset 0 .5px 0 rgba(255,255,255,.4);
+}
+.cardname{font-size:13px;font-weight:610;letter-spacing:-.2px;min-width:0}
+.cardname span{display:block;font-family:var(--mono);font-size:10px;color:var(--ink-3);font-weight:400;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:180px;letter-spacing:0}
+.meta{margin-left:auto;font-family:var(--mono);font-size:10px;color:var(--ink-3);text-align:right;white-space:nowrap}
+.scorechip{
+  display:inline-flex;align-items:center;gap:4px;padding:2.5px 8px;border-radius:999px;
+  background:var(--fill);font-size:10.5px;font-weight:650;font-family:var(--sans);color:var(--ink-2);
+  animation:popIn .4s var(--spring) both;letter-spacing:0;
+}
+.scorechip.top{background:color-mix(in srgb,var(--sys-green) 18%,transparent);color:var(--ok)}
+
+.body{padding:13px 15px 15px;font-size:14.2px;overflow-wrap:anywhere;flex:1}
+.body p{margin:0 0 10px}.body p:last-child{margin-bottom:0}
+.body ul,.body ol{margin:0 0 10px;padding-left:19px}.body li{margin-bottom:5px}
+.body code{font-family:var(--mono);font-size:12.3px;background:var(--fill-2);padding:1.5px 5px;border-radius:5px}
+.body pre{background:var(--fill-2);border:.5px solid var(--line-2);border-radius:var(--r);padding:11px 13px;overflow-x:auto;margin:0 0 10px}
+.body pre code{background:none;padding:0;font-size:12.3px;line-height:1.55}
+.body h1,.body h2,.body h3{font-size:14.5px;margin:15px 0 7px;font-weight:640;letter-spacing:-.2px}
+.body table{width:100%;border-collapse:collapse;margin:0 0 10px;font-size:12.8px}
+.body th,.body td{border:.5px solid var(--line);padding:6px 9px;text-align:left}
+.body th{background:var(--fill-2);font-weight:600}
+.body blockquote{margin:0 0 10px;padding-left:12px;border-left:2.5px solid var(--line);color:var(--ink-2)}
+.body a{color:var(--accent);text-decoration:none;border-bottom:1px solid color-mix(in srgb,var(--accent) 35%,transparent)}
+.card.err::before{background:var(--sys-red)}
+.card.err .body{color:var(--err);background:var(--err-soft);font-size:13px}
+.caret{display:inline-block;width:7px;height:14px;border-radius:2px;background:var(--seatcolor,var(--accent));
+  vertical-align:-2px;margin-left:2px;animation:blink 1.05s steps(2) infinite}
+.skeleton{height:10px;border-radius:6px;margin-bottom:9px;
+  background:linear-gradient(90deg,var(--fill-2),var(--fill),var(--fill-2));
+  background-size:200% 100%;animation:shimmer 1.4s linear infinite}
+
+/* verdict */
+.verdict{
+  position:relative;border:.5px solid color-mix(in srgb,var(--chair) 30%,var(--line));
+  border-radius:var(--r-lg);overflow:hidden;box-shadow:var(--shadow-2);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--chair) 9%,var(--panel-solid)),var(--panel-solid));
+  animation:rise .5s var(--spring) both;
+}
+.verdict::before{content:"";position:absolute;inset:0 0 auto 0;height:2.5px;background:linear-gradient(90deg,var(--chair),var(--sys-pink))}
+.verdict .avatar{background:linear-gradient(150deg,var(--chair),var(--sys-pink))}
+.verdict .body{font-size:14.6px}
+
+/* leaderboard */
+.board{
+  border:.5px solid var(--line);border-radius:var(--r-lg);background:var(--panel);
+  -webkit-backdrop-filter:blur(22px);backdrop-filter:blur(22px);
+  padding:6px;box-shadow:var(--shadow-1);animation:rise .5s var(--spring) both;
+}
+.brow{
+  display:flex;align-items:center;gap:11px;padding:9px 11px;border-radius:var(--r);
+  transition:background .2s var(--ease);animation:slideRight .45s var(--spring) both;
+}
+.brow:hover{background:var(--fill-2)}
+.brow .rank{width:20px;text-align:center;font-size:12.5px;font-weight:700;color:var(--ink-3);flex:0 0 auto}
+.brow .who{font-size:13px;font-weight:560;min-width:0;flex:0 0 auto;width:min(34vw,186px);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.brow .bar{flex:1;height:7px;border-radius:99px;background:var(--fill);overflow:hidden;min-width:44px}
+.brow .bar i{display:block;height:100%;border-radius:99px;background:var(--seatcolor,var(--accent));
+  width:0;transition:width .9s var(--spring)}
+.brow .num{font-family:var(--mono);font-size:11.5px;color:var(--ink-2);width:46px;text-align:right;flex:0 0 auto}
+.brow .peek{border:none;background:none;color:var(--ink-3);padding:2px 4px;font-size:15px;line-height:1;
+  transition:transform .3s var(--spring),color .2s}
+.brow .peek[aria-expanded=true]{transform:rotate(180deg);color:var(--ink)}
+.critiques{padding:2px 12px 12px 44px;font-size:12.6px;color:var(--ink-2);animation:fadeIn .3s var(--ease) both}
+.critiques div{padding:6px 0;border-top:.5px solid var(--line-2)}
+.critiques b{color:var(--ink);font-weight:600}
+
+/* ---------------- study pack ---------------- */
+.pack{
+  border:.5px solid var(--line);border-radius:var(--r-xl);overflow:hidden;background:var(--panel-solid);
+  box-shadow:var(--shadow-2);animation:rise .5s var(--spring) both;
+}
+.pack > header{border-bottom:.5px solid var(--line-2);padding:13px 16px}
+.pack .avatar{background:linear-gradient(150deg,var(--sys-teal),var(--sys-blue))}
+.packtabs{display:flex;gap:3px;padding:8px 10px;overflow-x:auto;scrollbar-width:none;border-bottom:.5px solid var(--line-2)}
+.packtabs::-webkit-scrollbar{display:none}
+.packtabs button{
+  border:none;background:none;padding:7px 13px;border-radius:9px;font-size:12.8px;font-weight:540;
+  color:var(--ink-2);white-space:nowrap;transition:background .2s var(--ease),color .2s var(--ease)
+}
+.packtabs button[aria-selected=true]{background:var(--fill);color:var(--ink);font-weight:620}
+.packpane{padding:16px 18px 20px;animation:fadeIn .3s var(--ease) both;font-size:14.2px}
+.packpane[hidden]{display:none}
+
+.flashwrap{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:11px}
+.flash{
+  perspective:900px;height:132px;border:none;background:none;padding:0;
+  animation:flipIn .45s var(--spring) both;
+}
+.flash .in{position:relative;width:100%;height:100%;transition:transform .55s var(--spring);transform-style:preserve-3d}
+.flash[aria-pressed=true] .in{transform:rotateY(180deg)}
+.flash .f,.flash .b{
+  position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;
+  border-radius:var(--r-lg);padding:14px;display:grid;place-items:center;text-align:center;
+  font-size:13.4px;line-height:1.45;border:.5px solid var(--line);
+}
+.flash .f{background:var(--fill-2);font-weight:560}
+.flash .b{background:linear-gradient(160deg,color-mix(in srgb,var(--sys-teal) 16%,var(--panel-solid)),var(--panel-solid));
+  transform:rotateY(180deg);color:var(--ink-2)}
+.flash:hover .f{border-color:color-mix(in srgb,var(--sys-teal) 45%,var(--line))}
+
+.quiz{display:flex;flex-direction:column;gap:10px}
+.qitem{border:.5px solid var(--line);border-radius:var(--r);padding:12px 14px;background:var(--fill-2)}
+.qitem .q{font-weight:560;margin-bottom:8px}
+.qitem .reveal{
+  border:.5px solid var(--line);background:var(--panel-solid);border-radius:8px;padding:5px 11px;
+  font-size:12.4px;font-weight:540;transition:background .2s var(--ease)
+}
+.qitem .a{margin-top:9px;font-size:13.4px;color:var(--ink-2);border-left:2.5px solid var(--sys-teal);padding-left:11px;
+  animation:fadeIn .3s var(--ease) both}
+.progressline{height:2.5px;background:var(--fill);border-radius:99px;overflow:hidden;margin-top:2px}
+.progressline i{display:block;height:100%;width:30%;border-radius:99px;
+  background:linear-gradient(90deg,transparent,var(--sys-teal),transparent);animation:sweep 1.3s var(--ease) infinite}
+@keyframes sweep{from{transform:translateX(-100%)}to{transform:translateX(400%)}}
+</style>
+<style>
+/* ---------------- composer ---------------- */
+footer{
+  flex:0 0 auto;z-index:20;
+  background:var(--chrome);
+  -webkit-backdrop-filter:saturate(180%) blur(24px);backdrop-filter:saturate(180%) blur(24px);
+  border-top:.5px solid var(--line);
+  padding:11px max(14px,2.4vw) max(12px,env(safe-area-inset-bottom));
+}
+.composer{max-width:1160px;margin:0 auto}
+.attachrow{display:flex;gap:8px;margin-bottom:9px;flex-wrap:wrap}
+.attach{position:relative;border:.5px solid var(--line);border-radius:var(--r);overflow:hidden;
+  height:58px;display:flex;align-items:center;gap:9px;padding-right:12px;background:var(--fill-2);
+  animation:popIn .35s var(--spring) both}
+.attach img{height:58px;width:70px;object-fit:cover;display:block}
+.attach .t{font-size:12px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink-2)}
+.attach .x{position:absolute;top:4px;right:4px;width:20px;height:20px;border-radius:50%;border:none;
+  background:rgba(0,0,0,.6);color:#fff;font-size:11px;line-height:1;display:grid;place-items:center}
+.inputshell{
+  display:flex;align-items:flex-end;gap:8px;border:.5px solid var(--line);
+  background:var(--panel-solid);border-radius:var(--r-xl);padding:6px 6px 6px 10px;
+  box-shadow:var(--shadow-1);
+  transition:border-color .25s var(--ease), box-shadow .25s var(--ease), transform .25s var(--spring);
+}
+.inputshell:focus-within{
+  border-color:color-mix(in srgb,var(--accent) 55%,transparent);
+  box-shadow:0 0 0 3.5px color-mix(in srgb,var(--accent) 15%,transparent), var(--shadow-1);
+}
+body[data-run=council] .inputshell:focus-within{border-color:color-mix(in srgb,var(--chair) 55%,transparent);
+  box-shadow:0 0 0 3.5px color-mix(in srgb,var(--chair) 15%,transparent), var(--shadow-1)}
+body[data-run=study] .inputshell:focus-within{border-color:color-mix(in srgb,var(--sys-teal) 55%,transparent);
+  box-shadow:0 0 0 3.5px color-mix(in srgb,var(--sys-teal) 15%,transparent), var(--shadow-1)}
+textarea{
+  flex:1;border:none;background:none;resize:none;font:inherit;font-family:var(--sans);color:inherit;
+  padding:9px 2px;max-height:190px;min-height:24px;line-height:1.5;font-size:15.5px;
+}
+textarea:focus{outline:none} textarea::placeholder{color:var(--ink-3)}
+.plusbtn{
+  width:34px;height:34px;border-radius:50%;border:none;background:var(--fill);color:var(--ink-2);
+  display:grid;place-items:center;flex:0 0 auto;transition:background .2s,transform .15s var(--spring)
+}
+.plusbtn:hover{background:var(--fill)} .plusbtn:active{transform:scale(.9) rotate(90deg)}
+.plusbtn svg{width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round}
+.send{
+  width:36px;height:36px;border-radius:50%;border:none;color:#fff;display:grid;place-items:center;flex:0 0 auto;
+  background:var(--accent);box-shadow:0 2px 8px color-mix(in srgb,var(--accent) 40%,transparent);
+  transition:opacity .2s,transform .18s var(--spring),background .3s var(--ease);
+}
+body[data-run=council] .send{background:var(--chair);box-shadow:0 2px 8px color-mix(in srgb,var(--chair) 40%,transparent)}
+body[data-run=study] .send{background:var(--sys-teal);box-shadow:0 2px 8px color-mix(in srgb,var(--sys-teal) 40%,transparent)}
+body[data-run=humanize] .send{background:var(--sys-green);box-shadow:0 2px 8px color-mix(in srgb,var(--sys-green) 40%,transparent)}
+body[data-run=humanize] .inputshell:focus-within{border-color:color-mix(in srgb,var(--sys-green) 55%,transparent);
+  box-shadow:0 0 0 3.5px color-mix(in srgb,var(--sys-green) 15%,transparent), var(--shadow-1)}
+.send:disabled{opacity:.3;box-shadow:none;cursor:not-allowed}
+.send:not(:disabled):hover{transform:scale(1.06)}
+.send:not(:disabled):active{transform:scale(.9)}
+.send.stop{background:var(--sys-red);box-shadow:0 2px 8px color-mix(in srgb,var(--sys-red) 40%,transparent)}
+.send svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.hint{display:flex;gap:12px;align-items:center;margin-top:8px;font-size:11.5px;color:var(--ink-3);flex-wrap:wrap;padding:0 4px}
+.hint .cost{font-family:var(--mono);font-size:10.5px}
+kbd{font-family:var(--sans);font-size:10.5px;border:.5px solid var(--line);border-radius:5px;padding:1px 5px;
+  background:var(--fill-2);font-weight:550}
+.linkbtn{border:none;background:none;color:var(--ink-3);font-size:11.5px;padding:2px 4px;border-radius:6px;
+  transition:color .2s,background .2s}
+.linkbtn:hover{color:var(--ink);background:var(--fill-2)}
+
+/* ---------------- sheets / drawers ---------------- */
+.scrim{position:fixed;inset:0;background:rgba(0,0,0,.34);z-index:50;opacity:0;pointer-events:none;
+  -webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px);transition:opacity .3s var(--ease)}
+.scrim.on{opacity:1;pointer-events:auto}
+.panel{
+  position:fixed;top:0;right:0;height:100dvh;width:min(452px,100vw);z-index:60;
+  background:var(--panel);-webkit-backdrop-filter:saturate(180%) blur(30px);backdrop-filter:saturate(180%) blur(30px);
+  border-left:.5px solid var(--line);box-shadow:var(--shadow-3);
+  transform:translate3d(101%,0,0);transition:transform .42s var(--spring);
+  display:flex;flex-direction:column;will-change:transform;
+}
+.panel.on{transform:none}
+.panel > .head{display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:.5px solid var(--line);
+  padding-top:max(14px,env(safe-area-inset-top))}
+.panel > .head h3{margin:0;font-size:15px;font-weight:620;letter-spacing:-.3px}
+.panel .content{overflow-y:auto;padding:16px;flex:1;-webkit-overflow-scrolling:touch;
+  padding-bottom:max(16px,env(safe-area-inset-bottom))}
+.grabber{display:none}
+
+.field{margin-bottom:18px;animation:fadeIn .35s var(--ease) both}
+.field label{display:block;font-size:12.5px;font-weight:600;margin-bottom:6px;letter-spacing:-.1px}
+.field .desc{font-size:12px;color:var(--ink-3);margin:-2px 0 8px;line-height:1.5}
+input[type=text],input[type=password],input[type=search],select,.field textarea{
+  width:100%;padding:10px 12px;border:.5px solid var(--line);border-radius:var(--r);
+  background:var(--panel-solid);color:var(--ink);font:inherit;font-size:16px;font-family:var(--sans);
+  transition:border-color .2s var(--ease),box-shadow .2s var(--ease);
+}
+@media(min-width:761px){input[type=text],input[type=password],input[type=search],select{font-size:13.5px}}
+input:focus,select:focus{outline:none;border-color:color-mix(in srgb,var(--accent) 55%,transparent);
+  box-shadow:0 0 0 3.5px color-mix(in srgb,var(--accent) 14%,transparent)}
+.mono{font-family:var(--mono);font-size:12.5px}
+.btn{padding:9px 14px;border-radius:10px;border:.5px solid var(--line);background:var(--panel-solid);
+  font-size:13.5px;font-weight:550;transition:background .2s,transform .14s var(--spring),border-color .2s}
+.btn:hover{background:var(--fill-2)} .btn:active{transform:scale(.96)}
+.btn.primary{background:var(--accent);border-color:transparent;color:#fff;
+  box-shadow:0 2px 8px color-mix(in srgb,var(--accent) 32%,transparent)}
+.btn.sm{padding:6px 11px;font-size:12.5px;border-radius:9px}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.seg{display:flex;border-radius:11px;padding:2.5px;background:var(--fill);gap:2px}
+.seg button{flex:1;padding:8px 6px;border:none;background:none;border-radius:8.5px;font-size:12.5px;
+  font-weight:540;color:var(--ink-2);transition:background .25s var(--ease),color .2s}
+.seg button[aria-pressed=true]{background:var(--panel-solid);color:var(--ink);box-shadow:var(--knob);font-weight:620}
+.seat{display:flex;align-items:center;gap:9px;padding:9px 11px;border:.5px solid var(--line);
+  border-radius:var(--r);margin-bottom:8px;background:var(--panel-solid);
+  transition:border-color .2s,transform .2s var(--spring);animation:slideRight .4s var(--spring) both}
+.seat:hover{border-color:var(--ink-3)}
+.seat .sw{width:10px;height:10px;border-radius:3px;flex:0 0 auto}
+.seat input[type=text]{border:none;background:none;padding:0;font-family:var(--mono);font-size:12px;box-shadow:none}
+.seat input[type=text]:focus{box-shadow:none}
+.seat .del{border:none;background:none;color:var(--ink-3);font-size:15px;line-height:1;padding:3px 5px;border-radius:6px}
+.seat .del:hover{color:var(--err);background:var(--err-soft)}
+.switch{position:relative;width:44px;height:26px;border-radius:99px;background:var(--fill);border:none;
+  flex:0 0 auto;transition:background .3s var(--ease)}
+.switch::after{content:"";position:absolute;top:2.5px;left:2.5px;width:21px;height:21px;border-radius:50%;
+  background:#fff;box-shadow:var(--knob);transition:transform .3s var(--spring)}
+.switch[aria-checked=true]{background:var(--sys-green)}
+.switch[aria-checked=true]::after{transform:translateX(18px)}
+.note{font-size:12.3px;line-height:1.55;color:var(--ink-2);background:var(--fill-2);
+  border:.5px solid var(--line);border-radius:var(--r);padding:11px 13px;margin-bottom:16px}
+.note b{color:var(--ink)}
+.note code,.code{font-family:var(--mono);font-size:11.5px;background:var(--panel-solid);
+  border:.5px solid var(--line);padding:1px 5px;border-radius:5px}
+pre.code{display:block;padding:10px 12px;overflow-x:auto;white-space:pre;border-radius:var(--r);margin:8px 0 0;line-height:1.6}
+.tabs{display:flex;gap:3px;padding:2.5px;background:var(--fill);border-radius:11px;margin:0 0 16px}
+.tabs button{flex:1;padding:7px 10px;border:none;background:none;border-radius:8.5px;font-size:12.8px;
+  font-weight:540;color:var(--ink-2);transition:background .25s var(--ease),color .2s}
+.tabs button[aria-selected=true]{background:var(--panel-solid);color:var(--ink);box-shadow:var(--knob);font-weight:620}
+details.ux{border:.5px solid var(--line);border-radius:var(--r);padding:11px 13px;background:var(--fill-2);font-size:12.5px}
+details.ux summary{cursor:pointer;font-weight:600;font-size:13px;list-style:none}
+details.ux summary::-webkit-details-marker{display:none}
+details.ux summary::before{content:"›";display:inline-block;margin-right:7px;transition:transform .3s var(--spring);color:var(--ink-3)}
+details.ux[open] summary::before{transform:rotate(90deg)}
+details.ux ul{margin:10px 0 0;padding-left:17px;color:var(--ink-2);line-height:1.65}
+details.ux li{margin-bottom:5px}
+
+/* image search */
+.searchbar{display:flex;gap:8px;margin-bottom:13px}
+.imggrid{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.imgcell{position:relative;border:.5px solid var(--line);border-radius:var(--r);overflow:hidden;padding:0;
+  background:var(--fill-2);aspect-ratio:4/3;margin:0;animation:popIn .4s var(--spring) both;
+  transition:transform .3s var(--spring),border-color .2s}
+.imgcell img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .5s var(--spring)}
+.imgcell:hover{transform:scale(1.02);border-color:var(--accent)}
+.imgcell:hover img{transform:scale(1.07)}
+.imgcell figcaption{position:absolute;inset:auto 0 0 0;color:#fff;font-size:10.5px;padding:18px 8px 6px;
+  text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  background:linear-gradient(transparent,rgba(0,0,0,.8))}
+.empty{color:var(--ink-3);font-size:13px;text-align:center;padding:34px 10px}
+.toast{
+  position:fixed;left:50%;bottom:112px;transform:translate(-50%,16px) scale(.96);z-index:90;
+  background:rgba(28,28,30,.9);color:#fff;padding:10px 18px;border-radius:999px;font-size:13.5px;font-weight:520;
+  opacity:0;pointer-events:none;box-shadow:var(--shadow-3);
+  -webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);
+  transition:opacity .28s var(--ease),transform .38s var(--spring);
+}
+[data-theme="dark"] .toast{background:rgba(240,240,245,.92);color:#111}
+.toast.on{opacity:1;transform:translate(-50%,0) scale(1)}
+
+/* ---------------- history ---------------- */
+.storeline{
+  font-size:12.2px;color:var(--ink-2);background:var(--fill-2);border:.5px solid var(--line);
+  border-radius:var(--r);padding:10px 12px;margin-bottom:14px;line-height:1.5
+}
+.storeline b{color:var(--ink)}
+.hrow{
+  display:flex;align-items:center;gap:10px;padding:2px 4px 2px 10px;border-radius:var(--r);
+  transition:background .2s var(--ease),opacity .2s var(--ease),transform .2s var(--spring);
+  animation:slideRight .4s var(--spring) both;
+}
+.hrow:hover{background:var(--fill-2)}
+.hdot{width:8px;height:8px;border-radius:50%;flex:0 0 auto}
+.hopen{
+  flex:1;min-width:0;text-align:left;border:none;background:none;padding:10px 0;display:block;
+}
+.htitle{display:block;font-size:13.4px;font-weight:520;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hmeta{display:block;font-size:11.3px;color:var(--ink-3);margin-top:1px}
+.hdel{
+  border:none;background:none;color:var(--ink-3);font-size:13px;padding:6px 8px;border-radius:8px;
+  opacity:0;transition:opacity .2s,color .2s,background .2s
+}
+.hrow:hover .hdel,.hrow:focus-within .hdel{opacity:1}
+.hdel:hover{color:var(--err);background:var(--err-soft)}
+@media(hover:none){.hdel{opacity:.6}}
+
+/* ---------------- humanizer ---------------- */
+.human{
+  border:.5px solid var(--line);border-radius:var(--r-xl);overflow:hidden;background:var(--panel-solid);
+  box-shadow:var(--shadow-2);animation:rise .5s var(--spring) both;
+}
+.human > header{border-bottom:.5px solid var(--line-2);padding:13px 16px}
+.human .avatar{background:linear-gradient(150deg,var(--sys-green),var(--sys-teal))}
+.finalwrap{padding:16px 18px 6px}
+.finaltext{
+  font-size:15.2px;line-height:1.66;border-left:2.5px solid var(--sys-green);padding-left:14px;
+}
+.finaltext p{margin:0 0 12px}
+.finalbar{display:flex;gap:8px;align-items:center;padding:10px 18px 14px;flex-wrap:wrap}
+.copybtn{
+  border:.5px solid var(--line);background:var(--fill-2);border-radius:9px;padding:7px 13px;
+  font-size:12.6px;font-weight:560;display:inline-flex;align-items:center;gap:6px;
+  transition:background .2s var(--ease),transform .14s var(--spring),color .2s
+}
+.copybtn:hover{background:var(--fill)} .copybtn:active{transform:scale(.95)}
+.copybtn.done{color:var(--ok);border-color:color-mix(in srgb,var(--sys-green) 50%,var(--line))}
+.wordstat{font-family:var(--mono);font-size:11px;color:var(--ink-3);margin-left:auto}
+.hsec{border-top:.5px solid var(--line-2)}
+.hsec > summary{
+  cursor:pointer;list-style:none;padding:11px 18px;font-size:12.8px;font-weight:560;color:var(--ink-2);
+  display:flex;align-items:center;gap:8px;transition:background .2s var(--ease)
+}
+.hsec > summary::-webkit-details-marker{display:none}
+.hsec > summary::before{content:"›";color:var(--ink-3);transition:transform .3s var(--spring);display:inline-block}
+.hsec[open] > summary::before{transform:rotate(90deg)}
+.hsec > summary:hover{background:var(--fill-2)}
+.hsec .inner{padding:2px 18px 16px;font-size:13.6px;color:var(--ink-2);animation:fadeIn .3s var(--ease) both}
+.hsec .inner p{margin:0 0 9px}
+.tells{list-style:none;margin:0;padding:0}
+.tells li{
+  padding:8px 0 8px 22px;position:relative;border-top:.5px solid var(--line-2);font-size:13.4px;line-height:1.5
+}
+.tells li:first-child{border-top:none}
+.tells li::before{content:"";position:absolute;left:4px;top:15px;width:6px;height:6px;border-radius:50%;
+  background:var(--sys-orange)}
+.pretext{
+  font-size:13.4px;line-height:1.6;color:var(--ink-3);background:var(--fill-2);border-radius:var(--r);
+  padding:12px 14px;max-height:230px;overflow-y:auto;white-space:pre-wrap
+}
+
+/* ---------------- phone ---------------- */
+@media(max-width:860px){
+  header{grid-template-columns:auto 1fr;grid-template-areas:"brand actions" "seg seg";gap:9px 10px;padding-bottom:9px}
+  .brand{grid-area:brand} .actions{grid-area:actions} .segmented{grid-area:seg;justify-self:stretch}
+  .segmented button{flex:1;justify-content:center;padding:8px 6px;font-size:12.5px}
+  .hide-sm{display:none}
+  .brand small{display:none}
+  #stream{padding:18px 14px 6px}
+  .grid{grid-template-columns:1fr;gap:12px}
+  .usermsg .bubble{max-width:92%;font-size:15.5px}
+  .hero{margin:22px auto}
+  .hero h2{letter-spacing:-.9px}
+  .suggests{grid-template-columns:1fr}
+  .brow .who{width:min(42vw,150px)}
+  .flashwrap{grid-template-columns:1fr}
+  .iconbtn{min-width:38px;height:38px}
+  .pill{height:34px}
+  /* drawers become bottom sheets */
+  .panel{
+    top:auto;bottom:0;right:0;left:0;width:100%;height:min(88dvh,760px);
+    border-left:none;border-top:.5px solid var(--line);
+    border-radius:var(--r-xl) var(--r-xl) 0 0;transform:translate3d(0,101%,0);
+  }
+  .grabber{display:block;width:38px;height:5px;border-radius:99px;background:var(--fill);
+    margin:8px auto 0;flex:0 0 auto}
+  .panel > .head{padding-top:10px}
+  .imggrid{grid-template-columns:1fr 1fr}
+  .toast{bottom:96px;left:16px;right:16px;transform:translateY(16px);text-align:center}
+  .toast.on{transform:none}
+}
+@media(max-width:620px){
+  .segmented button svg{display:none}          /* four labels need the room */
+  .segmented button{padding:8px 4px;font-size:12.5px}
+}
+@media(max-width:400px){
+  .segmented button{font-size:11.5px;padding:8px 2px;letter-spacing:-.3px}
+  .finaltext{font-size:14.6px}
+  .finalwrap,.hsec .inner{padding-left:14px;padding-right:14px}
+  .finalbar{padding-left:14px;padding-right:14px}
+}
+</style>
+</head>
+<body data-run="quick">
+
+<header>
+  <div class="brand">
+    <div class="seal">LC</div>
+    <div>
+      <h1>LLM Council</h1>
+      <small id="brandSub">One question. Many models. One verdict.</small>
+    </div>
+  </div>
+
+  <div class="segmented" id="modeSwitch" data-mode="quick" role="group" aria-label="Answer mode">
+    <span class="knob" id="modeKnob"></span>
+    <button data-run="quick" aria-pressed="true" title="One fast model (⌘1)">
+      <svg viewBox="0 0 24 24"><path d="M13 2 4.5 13.5H11l-1 8.5 8.5-11.5H12z"/></svg>
+      <span>Quick</span>
+    </button>
+    <button data-run="council" aria-pressed="false" title="Full three-stage council (⌘2)">
+      <svg viewBox="0 0 24 24"><circle cx="8" cy="9" r="2.4"/><circle cx="16" cy="9" r="2.4"/><path d="M3.5 19c.6-2.6 2.3-4 4.5-4s3.9 1.4 4.5 4M11.5 19c.6-2.6 2.3-4 4.5-4s3.9 1.4 4.5 4"/></svg>
+      <span>Council</span>
+    </button>
+    <button data-run="study" aria-pressed="false" title="Deep study pack (⌘3)">
+      <svg viewBox="0 0 24 24"><path d="M4 4.5h6a2.5 2.5 0 0 1 2 2.5 2.5 2.5 0 0 1 2-2.5h6v13h-6a2.5 2.5 0 0 0-2 2 2.5 2.5 0 0 0-2-2H4z"/><path d="M12 7v12"/></svg>
+      <span>Study</span>
+    </button>
+    <button data-run="humanize" aria-pressed="false" title="Strip AI tells from text (⌘4)">
+      <svg viewBox="0 0 24 24"><path d="M4 20.5c1.2-3.4 3.9-5 8-5s6.8 1.6 8 5"/><circle cx="12" cy="8" r="4"/></svg>
+      <span>Humanize</span>
+    </button>
+  </div>
+
+  <div class="actions">
+    <button class="pill hide-sm" id="statusPill" title="Connection"><span class="dot demo" id="statusDot"></span><span id="statusText">Demo</span></button>
+    <button class="iconbtn" id="btnImages" title="Images (⌘I)" aria-label="Search images">
+      <svg viewBox="0 0 24 24"><rect x="3" y="3.5" width="18" height="17" rx="4"/><circle cx="8.6" cy="9" r="1.7"/><path d="M21 15.5 16.5 11l-8.5 9"/></svg>
+    </button>
+    <button class="iconbtn" id="btnHistory" title="History (⌘H)" aria-label="History">
+      <svg viewBox="0 0 24 24"><path d="M3.2 12a8.8 8.8 0 1 0 2.6-6.2"/><path d="M3 4.5V9h4.5"/><path d="M12 7.5V12l3 2"/></svg>
+    </button>
+    <button class="iconbtn" id="btnTheme" title="Appearance" aria-label="Toggle appearance">
+      <svg viewBox="0 0 24 24" id="themeIcon"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.1 5.1l1.4 1.4M17.5 17.5l1.4 1.4M18.9 5.1l-1.4 1.4M6.5 17.5l-1.4 1.4"/></svg>
+    </button>
+    <button class="iconbtn" id="btnSettings" title="Settings (⌘K)" aria-label="Settings">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1A1.6 1.6 0 0 0 9 19.4a1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1A1.6 1.6 0 0 0 4.6 9a1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H9a1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V9a1.6 1.6 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z"/></svg>
+    </button>
+  </div>
+</header>
+
+<main>
+  <div id="stream">
+    <div class="wrap" id="wrap">
+      <section class="hero" id="hero">
+        <span class="badge"><i></i><span id="heroBadge">Quick mode</span></span>
+        <h2 id="heroTitle">Ask once. <em>Answer now.</em></h2>
+        <p id="heroSub">One fast model, straight to the point. Switch to Council when the answer has to be right, or Study when you need to actually learn it.</p>
+        <div class="suggests" id="heroSuggests"></div>
+      </section>
+    </div>
+  </div>
+</main>
+
+<footer>
+  <div class="composer">
+    <div class="attachrow" id="attachRow" hidden></div>
+    <div class="inputshell">
+      <button class="plusbtn" id="btnPlus" title="Attach an image" aria-label="Attach an image">
+        <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+      </button>
+      <textarea id="input" rows="1" placeholder="Ask anything…" aria-label="Message"></textarea>
+      <button class="send" id="send" disabled aria-label="Send">
+        <svg viewBox="0 0 24 24" id="sendIcon"><path d="M12 19V5M5.5 11.5 12 5l6.5 6.5"/></svg>
+      </button>
+    </div>
+    <div class="hint">
+      <span><kbd>↵</kbd> send · <kbd>⇧↵</kbd> newline · <kbd>⌘1/2/3</kbd> mode</span>
+      <span class="cost" id="costHint">1 call</span>
+      <span class="spacer"></span>
+      <button class="linkbtn" id="btnClear">Clear</button>
+    </div>
+  </div>
+</footer>
+
+<div class="scrim" id="scrim"></div>
+
+<!-- ============ SETTINGS SHEET ============ -->
+<aside class="panel" id="settingsPanel" aria-hidden="true">
+  <div class="grabber"></div>
+  <div class="head">
+    <h3>Settings</h3><div class="spacer"></div>
+    <button class="iconbtn" data-close aria-label="Close">✕</button>
+  </div>
+  <div class="content">
+    <div class="tabs" role="tablist">
+      <button role="tab" aria-selected="true" data-tab="conn">Connection</button>
+      <button role="tab" aria-selected="false" data-tab="models">Models</button>
+      <button role="tab" aria-selected="false" data-tab="about">About</button>
+    </div>
+
+    <div data-pane="conn">
+      <div class="field">
+        <label>How the page reaches Mesh</label>
+        <div class="desc">Mesh blocks direct browser calls on purpose — its docs say never expose an <code>rsk_</code> key client-side. Run the bundled proxy and choose <b>Local proxy</b>.</div>
+        <div class="seg" id="connSeg">
+          <button data-mode="proxy">Local proxy</button>
+          <button data-mode="direct">Direct</button>
+          <button data-mode="demo" aria-pressed="true">Demo</button>
+        </div>
+      </div>
+      <div class="field">
+        <label for="baseUrl">Base URL</label>
+        <input type="text" id="baseUrl" class="mono" spellcheck="false" />
+      </div>
+      <div class="field">
+        <label for="apiKey">Router Service Key</label>
+        <div class="desc">Held in this browser's localStorage and sent as a Bearer token — nowhere else. Leave empty to stay in demo mode.</div>
+        <input type="password" id="apiKey" class="mono" placeholder="rsk_…" autocomplete="off" spellcheck="false" />
+        <div class="row" style="margin-top:9px">
+          <button class="btn sm" id="btnReveal">Show</button>
+          <button class="btn sm" id="btnTest">Test</button>
+          <button class="btn sm" id="btnForget">Forget</button>
+        </div>
+        <div class="desc" id="testResult" style="margin-top:9px"></div>
+      </div>
+      <div class="note">
+        <b>Run it for real.</b> Put <code>index.html</code> and <code>server.mjs</code> in one folder:
+        <pre class="code">MESH_API_KEY=rsk_… node server.mjs
+# → http://localhost:8787</pre>
+        Node 18+, no dependencies. The proxy forwards <code>/v1/*</code> and adds the CORS headers the browser needs.
+      </div>
+      <div class="field">
+        <label for="imgSource">Image search source</label>
+        <select id="imgSource">
+          <option value="openverse">Openverse — keyless, CC-licensed</option>
+          <option value="mesh">Mesh /v1/web/search — $0.005 each</option>
+        </select>
+      </div>
+    </div>
+
+    <div data-pane="models" hidden>
+      <div class="field">
+        <label for="quickModel">Quick model</label>
+        <div class="desc">One call, streamed straight back.</div>
+        <input type="text" id="quickModel" class="mono" spellcheck="false" />
+      </div>
+      <div class="field">
+        <label>Council seats</label>
+        <div class="desc">Every seat answers in parallel, then reviews the others anonymously.</div>
+        <div id="seatList"></div>
+        <div class="row" style="margin-top:10px">
+          <input type="text" id="newSeat" class="mono" placeholder="provider/model-slug" spellcheck="false" style="flex:1" />
+          <button class="btn" id="btnAddSeat">Add</button>
+        </div>
+      </div>
+      <div class="field">
+        <div class="row" style="justify-content:space-between">
+          <div style="flex:1;min-width:0">
+            <label style="margin:0">Stage 2 — peer review</label>
+            <div class="desc" style="margin:2px 0 0">Seats score each other's answers blind. Doubles seat calls.</div>
+          </div>
+          <button class="switch" id="peerSwitch" role="switch" aria-checked="true" aria-label="Peer review"></button>
+        </div>
+      </div>
+      <div class="field">
+        <label for="chairModel">Chair model</label>
+        <div class="desc">Reads every answer plus the rankings and writes the verdict.</div>
+        <input type="text" id="chairModel" class="mono" spellcheck="false" />
+      </div>
+      <div class="field">
+        <label for="studyModel">Study model</label>
+        <div class="desc">Builds the study pack: concepts, misconceptions, flashcards, quiz.</div>
+        <input type="text" id="studyModel" class="mono" spellcheck="false" />
+      </div>
+      <div class="field">
+        <label for="humanizeModel">Humanizer model</label>
+        <div class="desc">Rewrites text to strip AI tells. Wants a strong model — the audit pass is the point.</div>
+        <input type="text" id="humanizeModel" class="mono" spellcheck="false" />
+      </div>
+      <div class="field">
+        <label for="voiceSample">Voice sample <span style="font-weight:450;color:var(--ink-3)">(optional)</span></label>
+        <div class="desc">Paste a few sentences of your own writing. The humanizer matches its rhythm and word choice instead of defaulting to generic-natural.</div>
+        <textarea id="voiceSample" rows="4" placeholder="Paste something you wrote…" style="resize:vertical;line-height:1.5"></textarea>
+      </div>
+      <div class="field">
+        <label for="sysPrompt">House instruction</label>
+        <input type="text" id="sysPrompt" />
+      </div>
+      <div class="field">
+        <label for="ctxTurns">Conversation memory</label>
+        <select id="ctxTurns">
+          <option value="0">Each question stands alone</option>
+          <option value="3">Remember the last 3 turns</option>
+          <option value="99">Remember everything</option>
+        </select>
+      </div>
+    </div>
+
+    <div data-pane="about" hidden>
+      <div class="field">
+        <label>Three modes</label>
+        <div class="desc">
+          <b>Quick</b> — one small fast model, one streamed card.<br>
+          <b>Council</b> — the Karpathy pipeline: parallel answers, anonymous peer review with scores, then a chairman synthesis. Costs roughly 3–6× a single query, which is the honest tradeoff for the accuracy.<br>
+          <b>Study</b> — paste a topic and get a worked study pack: orientation, concept map, layered explanation, misconceptions, flashcards you can flip, and a self-check quiz.<br>
+          <b>Humanize</b> — paste AI-sounding text and get it stripped of the tells: significance inflation, participle padding, rule-of-three, em dash spray, "not just X but Y", boilerplate hedging. It drafts, audits its own draft for what still reads as machine-written, then rewrites. You see all three.
+        </div>
+      </div>
+      <details class="ux" open>
+        <summary>Design notes</summary>
+        <ul>
+          <li><b>macOS idiom</b> — vibrancy over flat fills, hairline borders, SF system type, the sliding segmented control, and sheets that spring rather than snap.</li>
+          <li><b>Jakob's Law</b> — the composer, bubbles and Enter-to-send match every chat app you already use; novelty is spent on the council grid alone.</li>
+          <li><b>Doherty Threshold</b> — skeletons inside ~100ms, then token streaming, so nothing waits on the slowest seat.</li>
+          <li><b>Hick's Law</b> — three modes, one composer, one primary action. Configuration hides in a sheet.</li>
+          <li><b>Von Restorff</b> — the chair's verdict is the only violet, filled surface on the page.</li>
+          <li><b>Common Region</b> — one card per model with its own colour rail, so attribution never blurs.</li>
+          <li><b>Fitts's Law</b> — 34–38px targets, edge-pinned, and full-width bottom sheets on phones.</li>
+          <li><b>Postel's Law</b> — the key field swallows quotes, whitespace and a pasted <code>Bearer</code> prefix.</li>
+          <li><b>Reduced motion</b> — every animation collapses when the OS asks for it.</li>
+        </ul>
+      </details>
+    </div>
+  </div>
+</aside>
+
+<!-- ============ IMAGE SHEET ============ -->
+<aside class="panel" id="imgPanel" aria-hidden="true">
+  <div class="grabber"></div>
+  <div class="head">
+    <h3>Images</h3><div class="spacer"></div>
+    <button class="iconbtn" data-close aria-label="Close">✕</button>
+  </div>
+  <div class="content">
+    <div class="searchbar">
+      <input type="search" id="imgQuery" placeholder="Search openly-licensed images…" />
+      <button class="btn primary" id="btnImgSearch">Search</button>
+    </div>
+    <div class="row" style="margin-bottom:13px">
+      <button class="btn sm" id="btnUpload">Upload</button>
+      <input type="file" id="fileInput" accept="image/*" hidden />
+      <span class="desc" style="margin:0">Tap a result to attach it to your next message.</span>
+    </div>
+    <div class="imggrid" id="imgResults"></div>
+    <div class="empty" id="imgEmpty">Search for something, or upload an image, then ask about it.</div>
+  </div>
+</aside>
+
+<!-- ============ HISTORY SHEET ============ -->
+<aside class="panel" id="historyPanel" aria-hidden="true">
+  <div class="grabber"></div>
+  <div class="head">
+    <h3>History</h3><div class="spacer"></div>
+    <button class="iconbtn" data-close aria-label="Close">✕</button>
+  </div>
+  <div class="content">
+    <div class="searchbar">
+      <input type="search" id="historyQuery" placeholder="Search your saved runs…" />
+    </div>
+    <div class="storeline">
+      Saved to <b id="storeBadge">this browser</b>.
+      <span class="desc" style="margin:0">Run <code>server.mjs</code> with <code>MONGODB_URI</code> to keep history in Atlas and share it across devices.</span>
+    </div>
+    <div id="historyList"></div>
+    <div class="empty" id="historyEmpty">No saved runs yet.</div>
+    <div style="text-align:center;padding:14px 0 4px">
+      <button class="btn sm" id="btnWipeHistory">Delete all history</button>
+    </div>
+  </div>
+</aside>
+
+<div class="toast" id="toast"></div>
+<script>
+/* ==================== state ==================== */
+const SEAT_COLORS=['#007aff','#ff9500','#30b0c7','#af52de','#ff2d55','#34c759','#5856d6','#a2845e'];
+const uid=()=>Math.random().toString(36).slice(2,9);
+const DEFAULTS={
+  runMode:'quick',
+  conn:'demo',
+  baseUrl:'http://localhost:8787/v1',
+  apiKey:'',
+  imgSource:'openverse',
+  quickModel:'openai/gpt-4o-mini',
+  studyModel:'openai/gpt-4o',
+  humanizeModel:'anthropic/claude-sonnet-4',
+  voiceSample:'',
+  chair:'openai/gpt-4o',
+  peer:true,
+  seats:[
+    {id:uid(),model:'openai/gpt-4o',on:true},
+    {id:uid(),model:'anthropic/claude-sonnet-4',on:true},
+    {id:uid(),model:'google/gemini-2.5-pro',on:true},
+    {id:uid(),model:'meta-llama/llama-3.3-70b-instruct',on:true}
+  ],
+  system:"Answer directly and concisely. State a position; flag real uncertainty rather than hedging everywhere.",
+  ctxTurns:3,
+  theme:'light'
+};
+function loadCfg(){
+  try{
+    const raw=JSON.parse(localStorage.getItem('llm-council-v2')||'{}');
+    const c={...structuredClone(DEFAULTS),...raw};
+    if(!Array.isArray(c.seats)||!c.seats.length) c.seats=structuredClone(DEFAULTS.seats);
+    return c;
+  }catch{ return structuredClone(DEFAULTS) }
+}
+let cfg=loadCfg();
+const saveCfg=()=>{
+  localStorage.setItem('llm-council-v2',JSON.stringify(cfg));
+  if(typeof pushSettings==='function') pushSettings();   // mirror to the server, minus the key
+};
+
+let convo=[];            // rolling chat memory
+let attachment=null;     // {url,name}
+let running=null;        // AbortController
+
+const $=q=>document.querySelector(q);
+const $$=q=>[...document.querySelectorAll(q)];
+const esc=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const seatColor=i=>SEAT_COLORS[i%SEAT_COLORS.length];
+const shortName=m=>{const t=(m||'').split('/').pop().replace(/-(latest|preview)$/,'');return t.length>24?t.slice(0,23)+'…':t};
+const initials=m=>(m||'?').split('/').pop().replace(/[^a-z0-9]/gi,'').slice(0,2).toUpperCase();
+const sleep=(ms,signal)=>new Promise((res,rej)=>{
+  const id=setTimeout(res,ms);
+  signal?.addEventListener('abort',()=>{clearTimeout(id);rej(Object.assign(new Error('aborted'),{name:'AbortError'}))},{once:true});
+});
+
+/* ==================== markdown ==================== */
+function md(src){
+  let t=esc(src);
+  const blocks=[];
+  t=t.replace(/```(\w*)\n?([\s\S]*?)```/g,(_,l,c)=>{blocks.push(c);return `\n\n@@CB${blocks.length-1}@@\n\n`});
+  t=t.replace(/^\|(.+)\|[ \t]*\n\|[ \t:\-|]+\|[ \t]*\n((?:\|.*\|[ \t]*\n?)+)/gm,(m,head,rows)=>{
+    const cells=r=>r.split('|').slice(1,-1).map(c=>c.trim());
+    const th=cells('|'+head+'|').map(c=>`<th>${c}</th>`).join('');
+    const tb=rows.trim().split('\n').map(r=>'<tr>'+cells(r).map(c=>`<td>${c}</td>`).join('')+'</tr>').join('');
+    return `<table><thead><tr>${th}</tr></thead><tbody>${tb}</tbody></table>\n\n`;
+  });
+  t=t.replace(/`([^`\n]+)`/g,'<code>$1</code>')
+     .replace(/^####\s+(.+)$/gm,'<h3>$1</h3>')
+     .replace(/^###\s+(.+)$/gm,'<h3>$1</h3>')
+     .replace(/^##\s+(.+)$/gm,'<h2>$1</h2>')
+     .replace(/^#\s+(.+)$/gm,'<h2>$1</h2>')
+     .replace(/^&gt;\s?(.+)$/gm,'<blockquote>$1</blockquote>')
+     .replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>')
+     .replace(/(^|[\s(])\*([^*\n]+)\*/g,'$1<em>$2</em>')
+     .replace(/\[([^\]]+)\]\((https?:[^)\s]+)\)/g,'<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+  t=t.replace(/(?:^[-*+]\s+.+(?:\n|$))+/gm,m=>'<ul>'+m.trim().split('\n').map(l=>`<li>${l.replace(/^[-*+]\s+/,'')}</li>`).join('')+'</ul>');
+  t=t.replace(/(?:^\d+\.\s+.+(?:\n|$))+/gm,m=>'<ol>'+m.trim().split('\n').map(l=>`<li>${l.replace(/^\d+\.\s+/,'')}</li>`).join('')+'</ol>');
+  t=t.split(/\n{2,}/).map(p=>{
+      const x=p.trim(); if(!x) return '';
+      return /^<(h\d|ul|ol|pre|blockquote|table)/.test(x)?x:`<p>${x.replace(/\n/g,'<br>')}</p>`;
+    }).join('');
+  t=t.replace(/<p>\s*(@@CB\d+@@)\s*<\/p>/g,'$1');
+  return t.replace(/@@CB(\d+)@@/g,(_,i)=>`<pre><code>${blocks[i].replace(/\n$/,'')}</code></pre>`);
+}
+
+/* ==================== chrome ==================== */
+function applyTheme(){
+  document.documentElement.dataset.theme=cfg.theme;
+  $('#themeIcon').innerHTML = cfg.theme==='dark'
+    ? '<path d="M20.4 14.2A8.4 8.4 0 0 1 9.8 3.6a8.4 8.4 0 1 0 10.6 10.6z"/>'
+    : '<circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.1 5.1l1.4 1.4M17.5 17.5l1.4 1.4M18.9 5.1l-1.4 1.4M6.5 17.5l-1.4 1.4"/>';
+}
+function toast(msg){
+  const el=$('#toast'); el.textContent=msg; el.classList.add('on');
+  clearTimeout(el._t); el._t=setTimeout(()=>el.classList.remove('on'),2500);
+}
+function refreshStatus(){
+  const dot=$('#statusDot'),txt=$('#statusText');
+  dot.className='dot '+(cfg.conn==='demo'?'demo':(cfg.apiKey?'live':'bad'));
+  txt.textContent = cfg.conn==='demo'?'Demo':(cfg.apiKey?(cfg.conn==='proxy'?'Proxy':'Direct'):'No key');
+  const seats=cfg.seats.filter(s=>s.on&&s.model).length;
+  const c=$('#costHint');
+  if(cfg.runMode==='quick') c.textContent='1 call';
+  else if(cfg.runMode==='study') c.textContent='1 call · long';
+  else if(cfg.runMode==='humanize') c.textContent=cfg.voiceSample?'1 call · voice-matched':'1 call · draft, audit, rewrite';
+  else c.textContent=`${seats + (cfg.peer?seats:0) + 1} calls · ~${Math.max(3,seats)}×`;
+}
+
+/* ---- sheets ---- */
+function openPanel(sel){
+  $$('.panel').forEach(p=>{p.classList.remove('on');p.setAttribute('aria-hidden','true')});
+  const p=$(sel); p.classList.add('on'); p.setAttribute('aria-hidden','false'); $('#scrim').classList.add('on');
+}
+function closePanels(){
+  $$('.panel').forEach(p=>{p.classList.remove('on');p.setAttribute('aria-hidden','true')});
+  $('#scrim').classList.remove('on');
+}
+$('#scrim').onclick=closePanels;
+$$('[data-close]').forEach(b=>b.onclick=closePanels);
+$('#btnSettings').onclick=()=>openPanel('#settingsPanel');
+$('#btnImages').onclick=()=>{openPanel('#imgPanel');setTimeout(()=>$('#imgQuery').focus(),300)};
+$('#btnPlus').onclick=()=>$('#btnImages').click();
+$('#statusPill').onclick=()=>openPanel('#settingsPanel');
+$('#btnTheme').onclick=()=>{cfg.theme=cfg.theme==='dark'?'light':'dark';saveCfg();applyTheme()};
+$$('.tabs button').forEach(b=>b.onclick=()=>{
+  $$('.tabs button').forEach(x=>x.setAttribute('aria-selected',String(x===b)));
+  $$('[data-pane]').forEach(p=>p.hidden=p.dataset.pane!==b.dataset.tab);
+});
+addEventListener('keydown',e=>{
+  if(e.key==='Escape') closePanels();
+  const meta=e.metaKey||e.ctrlKey;
+  if(!meta) return;
+  const k=e.key.toLowerCase();
+  if(k==='k'){e.preventDefault();openPanel('#settingsPanel')}
+  if(k==='i'){e.preventDefault();$('#btnImages').click()}
+  if(k==='h'){e.preventDefault();$('#btnHistory').click()}
+  if(k==='1'){e.preventDefault();setRunMode('quick')}
+  if(k==='2'){e.preventDefault();setRunMode('council')}
+  if(k==='3'){e.preventDefault();setRunMode('study')}
+  if(k==='4'){e.preventDefault();setRunMode('humanize')}
+});
+
+/* ==================== mode switch ==================== */
+const MODES={
+  quick:{
+    badge:'Quick mode', title:'Ask once. <em>Answer now.</em>',
+    sub:'One fast model, straight to the point. Switch to Council when the answer has to be right, or Study when you need to actually learn it.',
+    placeholder:'Ask anything…', sub2:'One fast model, no ceremony.',
+    sugs:[
+      ['Quick fact','What actually changed in HTTP/3 versus HTTP/2?'],
+      ['Compress it','Explain quantum computing in one sentence.'],
+      ['Fix my wording','Rewrite this to be one line shorter and less corporate: "We are excited to announce…"'],
+      ['Small decision','Postgres or SQLite for a single-node internal tool with 20 users?']
+    ]
+  },
+  council:{
+    badge:'Council mode · 3 stages', title:'Ask once. <em>Hear the bench.</em>',
+    sub:'Every seat answers in parallel, scores the others blind, and the chair turns the disagreement into one verdict.',
+    placeholder:'Put a question to the council…', sub2:'Deliberate, review, synthesize.',
+    sugs:[
+      ['Take a position','Is a monorepo the right call for a 12-person product team shipping three services?'],
+      ['Stress-test a claim','Is intermittent fasting actually better than plain calorie restriction?'],
+      ['Judge a tradeoff','Should a seed-stage startup build on Kubernetes or a PaaS? Argue it properly.'],
+      ['Compare voices','Write a tight 80-word launch note for a developer tool that routes to 900+ models through one key.']
+    ]
+  },
+  study:{
+    badge:'Deep study mode', title:'Paste a topic. <em>Learn it properly.</em>',
+    sub:'You get an orientation, a concept map, a layered explanation, the misconceptions that trip people up, flashcards you can flip, and a quiz to check yourself.',
+    placeholder:'Paste a topic — "Bayesian inference", "the Krebs cycle", "how TLS handshakes work"…',
+    sub2:'Concepts, flashcards, self-check.',
+    sugs:[
+      ['Foundations','Bayesian inference — priors, likelihood, and why the posterior is the point'],
+      ['Systems','How TLS 1.3 handshakes work, end to end'],
+      ['Biology','The Krebs cycle and why it matters for energy metabolism'],
+      ['Money','Duration and convexity in bond pricing']
+    ]
+  },
+  humanize:{
+    badge:'Humanizer', title:'Paste the slop. <em>Get your voice back.</em>',
+    sub:'It strips the tells — significance inflation, participle padding, rule-of-three, em dash spray, "not just X, but Y" — then audits its own draft and rewrites what still reads like a machine.',
+    placeholder:'Paste the text you want de-slopped…',
+    sub2:'Strip the AI tells.',
+    sugs:[
+      ['Try a bad paragraph',"Nestled in the heart of the evolving AI landscape, our groundbreaking platform stands as a testament to innovation, seamlessly empowering teams to unlock their full potential. It's not just a tool—it's a catalyst for transformation, fostering collaboration, driving efficiency, and enhancing outcomes across the organization."],
+      ['LinkedIn voice',"I'm thrilled to announce that I've joined Acme as a Senior Product Manager! This pivotal moment marks an exciting new chapter in my professional journey. I'm deeply grateful to my mentors, whose guidance underscored the importance of resilience. Excited for what lies ahead!"],
+      ['Cover letter',"I am writing to express my strong interest in this role. With a proven track record of delivering data-driven, cross-functional results, I am confident that my unique blend of skills would make me a valuable addition to your dynamic team."],
+      ['Doc intro',"In today's rapidly evolving technological landscape, understanding authentication has become increasingly crucial. This comprehensive guide will delve into the intricacies of OAuth, exploring its key components and highlighting best practices."]
+    ]
+  }
+};
+function positionKnob(){
+  const sw=$('#modeSwitch'), knob=$('#modeKnob');
+  const active=sw.querySelector('button[aria-pressed=true]'); if(!active) return;
+  /* rects, not offsetLeft — integer rounding leaves the knob a pixel or two off */
+  const a=active.getBoundingClientRect(), s=sw.getBoundingClientRect();
+  knob.style.width=a.width+'px';
+  knob.style.transform=`translateX(${a.left-s.left-2.5}px)`;
+}
+function setRunMode(m,{silent}={}){
+  cfg.runMode=m; saveCfg();
+  document.body.dataset.run=m;
+  const sw=$('#modeSwitch'); sw.dataset.mode=m;
+  sw.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.run===m)));
+  positionKnob();
+  const c=MODES[m];
+  $('#input').placeholder=c.placeholder;
+  $('#brandSub').textContent=c.sub2;
+  const hero=$('#hero');
+  if(hero){
+    $('#heroBadge').textContent=c.badge;
+    $('#heroTitle').innerHTML=c.title;
+    $('#heroSub').textContent=c.sub;
+    hero.style.animation='none'; void hero.offsetWidth; hero.style.animation='';
+    paintSuggests();
+  }
+  refreshStatus();
+  if(!silent) toast(m==='quick'?'Quick — one fast model'
+    :m==='council'?'Council — three stages'
+    :m==='study'?'Deep study'
+    :'Humanizer — draft, audit, rewrite');
+}
+function paintSuggests(){
+  const box=$('#heroSuggests'); if(!box) return;
+  box.innerHTML='';
+  MODES[cfg.runMode].sugs.forEach(([t,q])=>{
+    const b=document.createElement('button');
+    b.className='sug'; b.innerHTML=`<b>${esc(t)}</b>${esc(q)}`;
+    b.onclick=()=>{const i=$('#input');i.value=q;autoGrow();syncSend();i.focus()};
+    box.appendChild(b);
+  });
+}
+$$('#modeSwitch button').forEach(b=>b.onclick=()=>setRunMode(b.dataset.run));
+addEventListener('resize',positionKnob);
+</script>
+<script>
+/* ==================== settings ==================== */
+function paintSettings(){
+  $$('#connSeg button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.mode===cfg.conn)));
+  $('#baseUrl').value=cfg.baseUrl; $('#apiKey').value=cfg.apiKey;
+  $('#quickModel').value=cfg.quickModel; $('#studyModel').value=cfg.studyModel;
+  $('#humanizeModel').value=cfg.humanizeModel; $('#voiceSample').value=cfg.voiceSample;
+  $('#chairModel').value=cfg.chair; $('#sysPrompt').value=cfg.system;
+  $('#ctxTurns').value=String(cfg.ctxTurns); $('#imgSource').value=cfg.imgSource;
+  $('#peerSwitch').setAttribute('aria-checked',String(!!cfg.peer));
+  const list=$('#seatList'); list.innerHTML='';
+  cfg.seats.forEach((seat,i)=>{
+    const el=document.createElement('div'); el.className='seat'; el.style.animationDelay=(i*40)+'ms';
+    el.innerHTML=`<input type="checkbox" ${seat.on?'checked':''} aria-label="Seat active">
+      <span class="sw" style="background:${seatColor(i)}"></span>
+      <input type="text" value="${esc(seat.model)}" spellcheck="false" style="flex:1">
+      <button class="del" aria-label="Remove seat">✕</button>`;
+    el.querySelector('[type=checkbox]').onchange=e=>{seat.on=e.target.checked;saveCfg();refreshStatus()};
+    el.querySelector('[type=text]').onchange=e=>{seat.model=e.target.value.trim();saveCfg();refreshStatus()};
+    el.querySelector('.del').onclick=()=>{cfg.seats=cfg.seats.filter(x=>x!==seat);saveCfg();paintSettings();refreshStatus()};
+    list.appendChild(el);
+  });
+}
+$$('#connSeg button').forEach(b=>b.onclick=()=>{
+  cfg.conn=b.dataset.mode;
+  if(cfg.conn==='proxy'&&!/localhost|127\.0\.0\.1/.test(cfg.baseUrl)) cfg.baseUrl='http://localhost:8787/v1';
+  if(cfg.conn==='direct') cfg.baseUrl='https://api.meshapi.ai/v1';
+  saveCfg(); paintSettings(); refreshStatus();
+});
+$('#baseUrl').onchange=e=>{cfg.baseUrl=e.target.value.trim().replace(/\/$/,'');saveCfg()};
+$('#apiKey').onchange=e=>{                       // Postel: tolerate quotes / Bearer / whitespace
+  cfg.apiKey=e.target.value.trim().replace(/^["']|["']$/g,'').replace(/^Bearer\s+/i,'');
+  e.target.value=cfg.apiKey;
+  if(cfg.apiKey&&cfg.conn==='demo'){cfg.conn='proxy';paintSettings()}
+  saveCfg(); refreshStatus();
+};
+$('#btnReveal').onclick=()=>{const f=$('#apiKey'),p=f.type==='password';f.type=p?'text':'password';$('#btnReveal').textContent=p?'Hide':'Show'};
+$('#btnForget').onclick=()=>{cfg.apiKey='';cfg.conn='demo';saveCfg();paintSettings();refreshStatus();toast('Key removed from this browser')};
+$('#quickModel').onchange=e=>{cfg.quickModel=e.target.value.trim();saveCfg()};
+$('#studyModel').onchange=e=>{cfg.studyModel=e.target.value.trim();saveCfg()};
+$('#humanizeModel').onchange=e=>{cfg.humanizeModel=e.target.value.trim();saveCfg()};
+$('#voiceSample').onchange=e=>{cfg.voiceSample=e.target.value.trim();saveCfg();refreshStatus()};
+$('#chairModel').onchange=e=>{cfg.chair=e.target.value.trim();saveCfg()};
+$('#sysPrompt').onchange=e=>{cfg.system=e.target.value;saveCfg()};
+$('#ctxTurns').onchange=e=>{cfg.ctxTurns=+e.target.value;saveCfg()};
+$('#imgSource').onchange=e=>{cfg.imgSource=e.target.value;saveCfg()};
+$('#peerSwitch').onclick=e=>{cfg.peer=!cfg.peer;e.currentTarget.setAttribute('aria-checked',String(cfg.peer));saveCfg();refreshStatus()};
+$('#btnAddSeat').onclick=()=>{
+  const v=$('#newSeat').value.trim(); if(!v) return;
+  cfg.seats.push({id:uid(),model:v,on:true}); $('#newSeat').value=''; saveCfg(); paintSettings(); refreshStatus();
+};
+$('#newSeat').addEventListener('keydown',e=>{if(e.key==='Enter')$('#btnAddSeat').click()});
+$('#btnTest').onclick=async()=>{
+  const out=$('#testResult');
+  if(cfg.conn==='demo'){out.innerHTML='<span style="color:var(--warn)">Demo mode — nothing to test.</span>';return}
+  if(!cfg.apiKey){out.innerHTML='<span style="color:var(--err)">Add your rsk_ key first.</span>';return}
+  out.textContent='Testing…';
+  try{
+    const r=await fetch(cfg.baseUrl+'/models',{headers:{Authorization:'Bearer '+cfg.apiKey}});
+    const j=await r.json().catch(()=>({}));
+    out.innerHTML = r.ok
+      ? `<span style="color:var(--ok)">Connected — ${(j.data||[]).length||'?'} models visible.</span>`
+      : `<span style="color:var(--err)">${r.status}: ${esc(j?.error?.message||'rejected')}</span>`;
+  }catch{
+    out.innerHTML='<span style="color:var(--err)">Network/CORS failure. Mesh refuses direct browser origins — run <code>node server.mjs</code> and pick Local proxy.</span>';
+  }
+  refreshStatus();
+};
+
+/* ==================== image search ==================== */
+async function searchImages(q){
+  const grid=$('#imgResults'),empty=$('#imgEmpty');
+  grid.innerHTML=''; empty.hidden=false; empty.textContent='Searching…';
+  try{
+    let items=[];
+    if(cfg.imgSource==='mesh'&&cfg.conn!=='demo'&&cfg.apiKey){
+      const r=await fetch(cfg.baseUrl+'/web/search',{
+        method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+cfg.apiKey},
+        body:JSON.stringify({query:q+' image',max_results:12})
+      });
+      const j=await r.json();
+      items=(j.results||[]).filter(x=>x.image||x.thumbnail)
+        .map(x=>({url:x.image||x.thumbnail,thumb:x.thumbnail||x.image,title:x.title||q,by:''}));
+      if(!items.length) throw new Error('no image results from Mesh');
+    }else{
+      const r=await fetch(`https://api.openverse.org/v1/images/?q=${encodeURIComponent(q)}&page_size=18&mature=false`);
+      const j=await r.json();
+      items=(j.results||[]).map(x=>({url:x.url,thumb:x.thumbnail||x.url,title:x.title||q,by:x.creator||''}));
+    }
+    if(!items.length){empty.textContent='Nothing found. Try different words.';return}
+    empty.hidden=true;
+    items.forEach((it,i)=>{
+      const fig=document.createElement('figure');
+      fig.className='imgcell'; fig.style.animationDelay=(i*28)+'ms';
+      fig.innerHTML=`<img src="${esc(it.thumb)}" alt="${esc(it.title)}" loading="lazy">
+                     <figcaption>${esc(it.title)}${it.by?' · '+esc(it.by):''}</figcaption>`;
+      fig.tabIndex=0; fig.setAttribute('role','button');
+      const pick=()=>{setAttachment({url:it.url,name:it.title});closePanels();toast('Image attached')};
+      fig.onclick=pick; fig.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();pick()}};
+      grid.appendChild(fig);
+    });
+  }catch(err){ empty.textContent='Search failed: '+err.message }
+}
+$('#btnImgSearch').onclick=()=>{const q=$('#imgQuery').value.trim();if(q)searchImages(q)};
+$('#imgQuery').addEventListener('keydown',e=>{if(e.key==='Enter')$('#btnImgSearch').click()});
+$('#btnUpload').onclick=()=>$('#fileInput').click();
+$('#fileInput').onchange=e=>{
+  const f=e.target.files[0]; if(!f) return;
+  const rd=new FileReader();
+  rd.onload=()=>{setAttachment({url:rd.result,name:f.name});closePanels();toast('Image attached')};
+  rd.readAsDataURL(f);
+};
+function setAttachment(a){
+  attachment=a; const row=$('#attachRow');
+  if(!a){row.hidden=true;row.innerHTML='';syncSend();return}
+  row.hidden=false;
+  row.innerHTML=`<div class="attach"><img src="${esc(a.url)}" alt=""><span class="t">${esc(a.name||'image')}</span>
+    <button class="x" aria-label="Remove">✕</button></div>`;
+  row.querySelector('.x').onclick=()=>setAttachment(null);
+  syncSend();
+}
+
+/* ==================== composer ==================== */
+const input=$('#input');
+function autoGrow(){input.style.height='auto';input.style.height=Math.min(input.scrollHeight,190)+'px'}
+function syncSend(){$('#send').disabled = running?false:!(input.value.trim()||attachment)}
+input.addEventListener('input',()=>{autoGrow();syncSend()});
+input.addEventListener('keydown',e=>{
+  if(e.key==='Enter'&&!e.shiftKey&&!e.isComposing){e.preventDefault();if(!$('#send').disabled)submit()}
+});
+$('#send').onclick=()=>{running?stopRun():submit()};
+const heroNode=$('#hero');
+$('#btnClear').onclick=()=>{
+  stopRun(); convo=[]; $('#wrap').innerHTML=''; $('#wrap').appendChild(heroNode);
+  heroNode.style.animation='none'; void heroNode.offsetWidth; heroNode.style.animation='';
+  setAttachment(null); paintSuggests(); toast('Cleared');
+};
+function stopRun(){
+  if(running){running.abort();running=null}
+  $('#send').classList.remove('stop');
+  $('#sendIcon').innerHTML='<path d="M12 19V5M5.5 11.5 12 5l6.5 6.5"/>';
+  syncSend();
+}
+function startRun(){
+  running=new AbortController();
+  $('#send').classList.add('stop'); $('#send').disabled=false;
+  $('#sendIcon').innerHTML='<rect x="7.5" y="7.5" width="9" height="9" rx="1.8" fill="currentColor" stroke="none"/>';
+  return running.signal;
+}
+
+/* sticky scroll */
+const scroller=$('#stream');
+let stick=true, rafPending=false;
+scroller.addEventListener('scroll',()=>{
+  stick = scroller.scrollHeight - scroller.scrollTop - scroller.clientHeight < 110;
+});
+function stickScroll(){
+  if(!stick||rafPending) return;
+  rafPending=true;
+  requestAnimationFrame(()=>{rafPending=false;scroller.scrollTop=scroller.scrollHeight});
+}
+</script>
+<script>
+/* ==================== history / persistence ====================
+   Three tiers, decided at boot:
+     server  — server.mjs is reachable (Mongo Atlas, or its file fallback)
+     local   — no server: keep the last 30 runs in localStorage
+   The UI is identical either way; only the badge in the sheet differs.     */
+let STORE={tier:'local',driver:'localStorage'};
+const LOCAL_RUNS='llm-council-runs';
+const apiRoot=()=>cfg.baseUrl.replace(/\/v1\/?$/,'');
+
+async function detectStore(){
+  try{
+    const r=await fetch(apiRoot()+'/api/health',{signal:AbortSignal.timeout(2500)});
+    if(!r.ok) throw 0;
+    const j=await r.json();
+    STORE={tier:'server',driver:j.driver==='mongo'?'MongoDB':'server file',keyOnServer:!!j.keyOnServer};
+  }catch{
+    STORE={tier:'local',driver:'this browser'};
+  }
+  const b=$('#storeBadge'); if(b) b.textContent=STORE.driver;
+  return STORE;
+}
+const localRuns=()=>{try{return JSON.parse(localStorage.getItem(LOCAL_RUNS)||'[]')}catch{return[]}};
+const writeLocal=rows=>localStorage.setItem(LOCAL_RUNS,JSON.stringify(rows.slice(0,30)));
+
+async function saveRun(run){
+  run.id=run.id||('r'+Date.now().toString(36)+Math.random().toString(36).slice(2,6));
+  run.createdAt=run.createdAt||new Date().toISOString();
+  run.title=(run.prompt||'').replace(/\s+/g,' ').trim().slice(0,120);
+  if(STORE.tier==='server'){
+    try{
+      await fetch(apiRoot()+'/api/runs',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(run)});
+      return run.id;
+    }catch{ /* server went away mid-session — fall through to local */ }
+  }
+  const rows=localRuns().filter(r=>r.id!==run.id);
+  rows.unshift(run); writeLocal(rows);
+  return run.id;
+}
+async function listRuns(q){
+  if(STORE.tier==='server'){
+    try{
+      const r=await fetch(apiRoot()+'/api/runs?limit=60'+(q?'&q='+encodeURIComponent(q):''));
+      return (await r.json()).runs||[];
+    }catch{}
+  }
+  const rows=localRuns();
+  if(!q) return rows;
+  const n=q.toLowerCase();
+  return rows.filter(r=>(r.title||'').toLowerCase().includes(n)||(r.prompt||'').toLowerCase().includes(n));
+}
+async function getRun(id){
+  if(STORE.tier==='server'){
+    try{ const r=await fetch(apiRoot()+'/api/runs/'+id); if(r.ok) return await r.json() }catch{}
+  }
+  return localRuns().find(r=>r.id===id)||null;
+}
+async function deleteRun(id){
+  if(STORE.tier==='server'){
+    try{ await fetch(apiRoot()+'/api/runs/'+id,{method:'DELETE'}) }catch{}
+  }
+  writeLocal(localRuns().filter(r=>r.id!==id));
+}
+
+/* ---- settings sync. The Mesh key is never sent. ---- */
+function syncableSettings(){
+  const {apiKey,...rest}=cfg;
+  return rest;
+}
+let syncTimer=null;
+function pushSettings(){
+  if(STORE.tier!=='server') return;
+  clearTimeout(syncTimer);
+  syncTimer=setTimeout(()=>{
+    fetch(apiRoot()+'/api/settings',{method:'PUT',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(syncableSettings())}).catch(()=>{});
+  },900);
+}
+async function pullSettingsIfFresh(){
+  /* Only adopt server settings on a browser that has none of its own, so a
+     second device inherits your setup without clobbering a configured one. */
+  if(STORE.tier!=='server') return;
+  if(localStorage.getItem('llm-council-v2')) return;
+  try{
+    const r=await fetch(apiRoot()+'/api/settings');
+    const s=await r.json();
+    if(s&&Object.keys(s).length>1){
+      cfg={...cfg,...s,apiKey:cfg.apiKey};
+      saveCfg(); paintSettings(); setRunMode(cfg.runMode,{silent:true}); applyTheme();
+      toast('Settings restored from '+STORE.driver);
+    }
+  }catch{}
+}
+
+/* ==================== history UI ==================== */
+const MODE_META={
+  quick:{t:'Quick',c:'var(--accent)'},council:{t:'Council',c:'var(--chair)'},
+  study:{t:'Study',c:'var(--sys-teal)'},humanize:{t:'Humanize',c:'var(--sys-green)'}
+};
+function ago(iso){
+  const s=(Date.now()-new Date(iso).getTime())/1000;
+  if(s<60) return 'just now';
+  if(s<3600) return Math.floor(s/60)+'m ago';
+  if(s<86400) return Math.floor(s/3600)+'h ago';
+  if(s<604800) return Math.floor(s/86400)+'d ago';
+  return new Date(iso).toLocaleDateString(undefined,{month:'short',day:'numeric'});
+}
+async function paintHistory(q){
+  const box=$('#historyList'), empty=$('#historyEmpty');
+  box.innerHTML=''; empty.hidden=true;
+  const rows=await listRuns(q);
+  if(!rows.length){
+    empty.hidden=false;
+    empty.textContent=q?'Nothing matches that.':'No saved runs yet. Ask something and it lands here.';
+    return;
+  }
+  rows.forEach((r,i)=>{
+    const m=MODE_META[r.mode]||MODE_META.quick;
+    const el=document.createElement('div');
+    el.className='hrow'; el.style.animationDelay=(i*26)+'ms';
+    el.innerHTML=`<span class="hdot" style="background:${m.c}"></span>
+      <button class="hopen">
+        <span class="htitle">${esc(r.title||r.prompt||'(untitled)')}</span>
+        <span class="hmeta">${m.t} · ${ago(r.createdAt)}${r.models&&r.models.length>1?' · '+r.models.length+' models':''}</span>
+      </button>
+      <button class="hdel" aria-label="Delete">✕</button>`;
+    el.querySelector('.hopen').onclick=()=>openRun(r.id);
+    el.querySelector('.hdel').onclick=async()=>{
+      await deleteRun(r.id);
+      el.style.opacity='0'; el.style.transform='translateX(12px)';
+      setTimeout(()=>paintHistory($('#historyQuery').value.trim()),200);
+    };
+    box.appendChild(el);
+  });
+}
+async function openRun(id){
+  const run=await getRun(id);
+  if(!run){toast('That run could not be loaded');return}
+  closePanels();
+  if(heroNode.parentNode) heroNode.remove();
+  replayRun(run);
+  toast('Restored from '+STORE.driver);
+}
+
+/* rebuild a saved run with the same renderers the live path uses,
+   so flashcards still flip and the copy button still copies */
+function replayRun(run){
+  const p=run.payload||{};
+  const turn=document.createElement('section'); turn.className='turn';
+  const tag={quick:'⚡ Quick',council:'⚖︎ Council',study:'✦ Deep study',humanize:'✎ Humanize'}[run.mode]||'⚡ Quick';
+  turn.innerHTML=`<div class="usermsg"><div class="bubble">
+      <div class="modetag">${tag} · saved ${esc(ago(run.createdAt))}</div>
+      ${p.image?`<img src="${esc(p.image)}" alt="">`:''}${esc(run.prompt)||'<em>(image only)</em>'}
+    </div></div>`;
+  $('#wrap').appendChild(turn);
+
+  if(run.mode==='quick'){
+    const c=makeCard(turn,p.model||'',  'var(--accent)');
+    c.body.innerHTML=md(p.text||''); c.meta.textContent='saved';
+  }
+  else if(run.mode==='council'){
+    stageLabel(turn,'1','Deliberation');
+    const grid=document.createElement('div'); grid.className='grid'; turn.appendChild(grid);
+    const cards=(p.seats||[]).map((s,i)=>{
+      const c=makeCard(grid,s.model,seatColor(i));
+      c.body.innerHTML=s.text?md(s.text):'<em style="color:var(--ink-3)">No answer saved.</em>';
+      c.meta.textContent='saved';
+      return c;
+    });
+    if(p.ranking&&p.ranking.length){
+      stageLabel(turn,'2','Anonymous peer review');
+      const board=document.createElement('div'); board.className='board'; turn.appendChild(board);
+      const ranking=p.ranking.map(r=>({...r,color:seatColor(r.idx)}));
+      renderBoard(board,ranking,p.seats||[]);
+      ranking.forEach(r=>{
+        const card=cards[r.idx]; if(!card||!r.count) return;
+        const chip=document.createElement('span');
+        chip.className='scorechip'+(r.rank===1?' top':'');
+        chip.textContent=(r.rank===1?'★ ':'#'+r.rank+' ')+Number(r.mean).toFixed(1);
+        card.meta.parentNode.insertBefore(chip,card.meta);
+      });
+    }
+    if(p.chair&&p.chair.text){
+      stageLabel(turn,'3','Chairman synthesis');
+      const v=makeCard(turn,p.chair.model,'var(--chair)','chair');
+      v.body.innerHTML=md(p.chair.text); v.meta.textContent='saved';
+    }
+  }
+  else if(run.mode==='study'){
+    stageLabel(turn,null,'Study pack');
+    const pack=document.createElement('article');
+    pack.className='pack';
+    pack.innerHTML=`<header><div class="avatar">✦</div>
+      <div class="cardname">Study pack<span>${esc(p.model||'')}</span></div>
+      <div class="meta">saved</div></header><div class="body" data-live></div>`;
+    turn.appendChild(pack);
+    renderPack(pack,pack.querySelector('[data-live]'),p.raw||'',run.prompt);
+  }
+  else if(run.mode==='humanize'){
+    stageLabel(turn,null,'Humanized');
+    const card=document.createElement('article');
+    card.className='human';
+    card.innerHTML=`<header><div class="avatar">H</div>
+      <div class="cardname">Humanized<span>${esc(p.model||'')}</span></div>
+      <div class="meta">saved</div></header><div class="finalwrap" data-live></div>`;
+    turn.appendChild(card);
+    renderHumanized(card,card.querySelector('[data-live]'),p.raw||'',run.prompt);
+  }
+  stick=true; stickScroll();
+}
+
+$('#btnHistory').onclick=async()=>{
+  openPanel('#historyPanel');
+  $('#historyQuery').value='';
+  await detectStore();
+  paintHistory();
+};
+$('#historyQuery').addEventListener('input',e=>{
+  clearTimeout(e.target._t);
+  e.target._t=setTimeout(()=>paintHistory(e.target.value.trim()),220);
+});
+$('#btnWipeHistory').onclick=async()=>{
+  if(!confirm('Delete every saved run? This cannot be undone.')) return;
+  if(STORE.tier==='server'){ try{ await fetch(apiRoot()+'/api/runs',{method:'DELETE'}) }catch{} }
+  writeLocal([]);
+  paintHistory(); toast('History cleared');
+};
+</script>
+<script>
+/* ==================== Mesh API layer ==================== */
+function authHeaders(){
+  if(!cfg.apiKey) throw new Error('No API key set. Open Settings and paste your rsk_ key.');
+  return {'Content-Type':'application/json',Authorization:'Bearer '+cfg.apiKey};
+}
+async function meshError(res){
+  let m=`${res.status} ${res.statusText}`;
+  try{const j=await res.json(); m=j?.error?.message||m}catch{}
+  return new Error(m);
+}
+/* streaming chat -> calls onDelta(text) */
+async function chatStream(model,messages,{signal,onDelta}){
+  const res=await fetch(cfg.baseUrl+'/chat/completions',{
+    method:'POST',signal,headers:authHeaders(),
+    body:JSON.stringify({model,messages,stream:true})
+  });
+  if(!res.ok) throw await meshError(res);
+  const reader=res.body.getReader(),dec=new TextDecoder();
+  let buf='',acc='';
+  for(;;){
+    const {value,done}=await reader.read(); if(done) break;
+    buf+=dec.decode(value,{stream:true});
+    const lines=buf.split('\n'); buf=lines.pop();
+    for(const line of lines){
+      const t=line.trim(); if(!t.startsWith('data:')) continue;
+      const data=t.slice(5).trim(); if(data==='[DONE]') continue;
+      try{
+        const d=JSON.parse(data).choices?.[0]?.delta?.content;
+        if(d){acc+=d;onDelta(d)}
+      }catch{}
+    }
+  }
+  return acc;
+}
+/* one-shot chat, optional JSON mode with graceful downgrade */
+async function chatOnce(model,messages,{signal,json}={}){
+  const body={model,messages};
+  if(json) body.response_format={type:'json_object'};
+  let res=await fetch(cfg.baseUrl+'/chat/completions',{method:'POST',signal,headers:authHeaders(),body:JSON.stringify(body)});
+  if(!res.ok&&json&&(res.status===400||res.status===422)){        // model ignores response_format
+    delete body.response_format;
+    res=await fetch(cfg.baseUrl+'/chat/completions',{method:'POST',signal,headers:authHeaders(),body:JSON.stringify(body)});
+  }
+  if(!res.ok) throw await meshError(res);
+  const j=await res.json();
+  return j.choices?.[0]?.message?.content||'';
+}
+/* pull the first JSON object out of a reply that may be wrapped in prose or fences */
+function looseJSON(text){
+  if(!text) return null;
+  const fence=text.match(/```(?:json)?\s*([\s\S]*?)```/);
+  const raw=fence?fence[1]:text;
+  const start=raw.indexOf('{'), end=raw.lastIndexOf('}');
+  if(start<0||end<=start) return null;
+  try{ return JSON.parse(raw.slice(start,end+1)) }catch{}
+  try{ return JSON.parse(raw.slice(start,end+1).replace(/,\s*([}\]])/g,'$1')) }catch{}
+  return null;
+}
+
+/* ==================== card primitives ==================== */
+function stageLabel(parent,n,text,extra){
+  const el=document.createElement('div'); el.className='stagelabel';
+  el.innerHTML=(n?`<span class="n">${n}</span>`:'')+`<span>${esc(text)}</span>`+
+    (extra?`<span class="live" data-live>${esc(extra)}</span>`:'');
+  parent.appendChild(el); return el;
+}
+function makeCard(parent,model,color,kind){
+  const el=document.createElement('article');
+  el.className = kind==='chair'?'verdict':'card';
+  el.style.setProperty('--seatcolor',color);
+  el.innerHTML=`<header>
+      <div class="avatar">${kind==='chair'?'★':initials(model)}</div>
+      <div class="cardname">${esc(kind==='chair'?'Chair':shortName(model))}<span>${esc(model)}</span></div>
+      <div class="meta">…</div>
+    </header>
+    <div class="body">
+      <div class="skeleton" style="width:94%"></div>
+      <div class="skeleton" style="width:80%"></div>
+      <div class="skeleton" style="width:56%"></div>
+    </div>`;
+  parent.appendChild(el);
+  return {el,body:el.querySelector('.body'),meta:el.querySelector('.meta'),head:el.querySelector('header'),model};
+}
+/* run one model into one card; returns {ok, model, text} */
+async function streamInto(card,model,messages,signal,demoKey){
+  const t0=performance.now(); let acc='',first=null;
+  const paint=()=>{card.body.innerHTML=md(acc)+'<span class="caret"></span> ';stickScroll()};
+  const onDelta=d=>{
+    if(first===null){first=performance.now()-t0;card.meta.textContent=`${Math.round(first)}ms`}
+    acc+=d; paint();
+  };
+  try{
+    if(cfg.conn==='demo'){
+      for await(const chunk of demoStream(demoKey||model,messages,signal)) onDelta(chunk);
+    }else{
+      await chatStream(model,messages,{signal,onDelta});
+    }
+    const total=Math.round(performance.now()-t0);
+    card.body.innerHTML = acc.trim()?md(acc):'<em style="color:var(--ink-3)">Empty response.</em>';
+    card.meta.textContent=`${first?Math.round(first)+'ms · ':''}${total}ms · ${acc.split(/\s+/).filter(Boolean).length}w`;
+    stickScroll();
+    return {ok:true,model,text:acc};
+  }catch(err){
+    if(err.name==='AbortError'){
+      card.body.innerHTML=acc?md(acc)+'<p><em style="color:var(--ink-3)">Stopped.</em></p>':'<em style="color:var(--ink-3)">Stopped.</em>';
+      card.meta.textContent='stopped';
+      return {ok:false,model,text:acc,stopped:true};
+    }
+    card.el.classList.add('err');
+    const corsy=/Failed to fetch|NetworkError|Load failed/i.test(err.message);
+    card.body.innerHTML=`<strong>${esc(err.message)}</strong>`+(corsy
+      ? `<p style="margin-top:8px">The browser could not reach <code>${esc(cfg.baseUrl)}</code>. Mesh rejects direct cross-origin calls by design — start the bundled proxy with <code>node server.mjs</code> and switch to <b>Local proxy</b>.</p>`:'');
+    card.meta.textContent='failed';
+    return {ok:false,model,text:''};
+  }
+}
+function buildMessages(text,img,systemOverride){
+  const userContent = img
+    ? [{type:'text',text:text||'What do you make of this image?'},{type:'image_url',image_url:{url:img.url,detail:'auto'}}]
+    : text;
+  const msgs=[];
+  const sys=systemOverride!==undefined?systemOverride:cfg.system;
+  if(sys) msgs.push({role:'system',content:sys});
+  if(cfg.ctxTurns) msgs.push(...convo.slice(-cfg.ctxTurns*2));
+  msgs.push({role:'user',content:userContent});
+  return {msgs,userContent};
+}
+function remember(userContent,answer){
+  if(!answer) return;
+  convo.push({role:'user',content:userContent},{role:'assistant',content:String(answer).slice(0,6000)});
+}
+</script>
+<script>
+/* ==================== dispatch ==================== */
+async function submit(){
+  const text=input.value.trim(); const img=attachment;
+  if(!text&&!img) return;
+  input.value=''; autoGrow(); setAttachment(null); syncSend();
+  if(heroNode.parentNode) heroNode.remove();
+
+  const mode=cfg.runMode;
+  const turn=document.createElement('section'); turn.className='turn';
+  const tint=mode==='council'?'var(--chair)':mode==='study'?'var(--sys-teal)':'var(--accent)';
+  const tag={quick:'⚡ Quick',council:'⚖︎ Council',study:'✦ Deep study',humanize:'✎ Humanize'}[mode];
+  turn.innerHTML=`<div class="usermsg"><div class="bubble">
+      <div class="modetag">${tag}</div>
+      ${img?`<img src="${esc(img.url)}" alt="attached">`:''}${esc(text)||'<em>(image only)</em>'}
+    </div></div>`;
+  $('#wrap').appendChild(turn); stick=true; stickScroll();
+
+  const signal=startRun();
+  try{
+    if(mode==='quick') await runQuick(turn,text,img,signal);
+    else if(mode==='study') await runStudy(turn,text,signal);
+    else if(mode==='humanize') await runHumanize(turn,text,signal);
+    else await runCouncil(turn,text,img,signal);
+  }finally{
+    stopRun(); stickScroll();
+  }
+}
+
+/* ==================== QUICK ==================== */
+async function runQuick(turn,text,img,signal){
+  const {msgs,userContent}=buildMessages(text,img);
+  const t0=performance.now();
+  const card=makeCard(turn,cfg.quickModel,'var(--accent)');
+  const r=await streamInto(card,cfg.quickModel,msgs,signal,'__quick');
+  if(r.ok){
+    remember(userContent,r.text);
+    saveRun({mode:'quick',prompt:text,models:[cfg.quickModel],ms:Math.round(performance.now()-t0),
+      payload:{model:cfg.quickModel,text:r.text,image:img?img.url:''}});
+  }
+}
+
+/* ==================== COUNCIL ==================== */
+async function runCouncil(turn,text,img,signal){
+  const seats=cfg.seats.filter(s=>s.on&&s.model);
+  if(!seats.length){toast('No seats enabled — open Settings');return}
+  if(seats.length===1){                                  // a council of one is just Quick
+    const {msgs,userContent}=buildMessages(text,img);
+    const card=makeCard(turn,seats[0].model,seatColor(0));
+    const r=await streamInto(card,seats[0].model,msgs,signal);
+    if(r.ok) remember(userContent,r.text);
+    return;
+  }
+  const {msgs,userContent}=buildMessages(text,img);
+  const t0=performance.now();
+  const record={mode:'council',prompt:text,models:seats.map(s=>s.model),
+    payload:{seats:[],ranking:null,chair:null,image:img?img.url:''}};
+
+  /* ---- Stage 1: deliberation ---- */
+  const lab1=stageLabel(turn,'1','Deliberation',`0/${seats.length} in`);
+  const grid=document.createElement('div'); grid.className='grid'; turn.appendChild(grid);
+  const cards=seats.map((s,i)=>{const c=makeCard(grid,s.model,seatColor(i));c.el.style.animationDelay=(i*60)+'ms';return c});
+  let done=0;
+  const answers=await Promise.all(seats.map((s,i)=>
+    streamInto(cards[i],s.model,msgs,signal,s.model).finally(()=>{
+      done++; const l=lab1.querySelector('[data-live]'); if(l) l.textContent=`${done}/${seats.length} in`;
+    })
+  ));
+  const good=answers.map((a,i)=>({...a,idx:i,color:seatColor(i)})).filter(a=>a.ok&&a.text.trim());
+  record.payload.seats=seats.map((s,i)=>({model:s.model,text:answers[i]?.text||''}));
+  if(signal.aborted||!good.length) return;
+
+  /* ---- Stage 2: anonymous peer review ---- */
+  let ranking=null;
+  if(cfg.peer&&good.length>1){
+    const lab2=stageLabel(turn,'2','Anonymous peer review',`0/${good.length} reviewed`);
+    const board=document.createElement('div'); board.className='board';
+    board.innerHTML='<div style="padding:12px 13px"><div class="skeleton" style="width:70%"></div><div class="skeleton" style="width:52%"></div></div>';
+    turn.appendChild(board); stickScroll();
+    ranking=await peerReview(text,good,cards,signal,n=>{
+      const l=lab2.querySelector('[data-live]'); if(l) l.textContent=`${n}/${good.length} reviewed`;
+    });
+    if(signal.aborted) return;
+    renderBoard(board,ranking,good);
+    record.payload.ranking=ranking.map(({color,...r})=>r);
+  }
+
+  /* ---- Stage 3: chairman ---- */
+  if(cfg.chair&&cfg.chair!=='none'&&!signal.aborted){
+    stageLabel(turn,'3','Chairman synthesis');
+    const vcard=makeCard(turn,cfg.chair,'var(--chair)','chair');
+    const brief=good.map((r,i)=>{
+      const rank=ranking?ranking.find(x=>x.idx===r.idx):null;
+      const score=rank?` — peer score ${rank.mean.toFixed(1)}/10, ranked #${rank.rank}`:'';
+      return `### Member ${i+1} (${r.model})${score}\n${r.text}`;
+    }).join('\n\n');
+    const critiques=ranking
+      ? '\n\nPeer critiques:\n'+ranking.flatMap(r=>r.comments.map(c=>`- on ${shortName(r.model)}: ${c}`)).join('\n')
+      : '';
+    const sys="You chair a council of AI models. You receive the original question, each member's answer, and — where available — the anonymous peer scores and critiques they gave each other. Deliver a decisive verdict: where the bench genuinely agrees, where it diverges and why that matters, and your own recommendation. Weigh the peer scores but do not defer to them blindly. Never simply summarise each answer in turn.";
+    const r=await streamInto(vcard,cfg.chair,[
+      {role:'system',content:sys},
+      {role:'user',content:`Question put to the council:\n${text||'(image attached)'}\n\n${brief}${critiques}`}
+    ],signal,'__chair');
+    if(r.ok){ remember(userContent,r.text); record.payload.chair={model:cfg.chair,text:r.text} }
+  }else{
+    remember(userContent,good.map(r=>`[${r.model}] ${r.text}`).join('\n\n---\n\n'));
+  }
+  record.ms=Math.round(performance.now()-t0);
+  saveRun(record);
+}
+
+/* ---- stage 2 mechanics ---- */
+const LETTERS='ABCDEFGH';
+async function peerReview(question,good,cards,signal,onProgress){
+  let n=0;
+  const reviews=await Promise.all(good.map(async reviewer=>{
+    /* shuffle so label order differs per reviewer; authorship never disclosed */
+    const order=good.map((g,i)=>i).sort(()=>Math.random()-0.5);
+    const label2idx={};
+    const blocks=order.map((oi,pos)=>{
+      const L=LETTERS[pos]; label2idx[L]=good[oi].idx;
+      return `### Response ${L}\n${good[oi].text}`;
+    }).join('\n\n');
+    const sys="You are grading anonymous answers to a question. Authorship is hidden and one of them may be your own — judge only the content. Reply with JSON only.";
+    const user=`Question:\n${question||'(image attached)'}\n\n${blocks}\n\n`+
+      `Score every response from 1-10 on accuracy, reasoning and usefulness, and add one short sentence of critique. `+
+      `Reply with exactly this JSON shape:\n`+
+      `{"scores":[{"label":"A","accuracy":0,"reasoning":0,"usefulness":0,"critique":""}],"best":"A"}`;
+    let parsed=null;
+    try{
+      const raw = cfg.conn==='demo'
+        ? await demoPeerJSON(order,good,signal)
+        : await chatOnce(reviewer.model,[{role:'system',content:sys},{role:'user',content:user}],{signal,json:true});
+      parsed=looseJSON(raw);
+    }catch(e){ if(e.name==='AbortError') throw e }
+    n++; onProgress?.(n);
+    return {reviewer:reviewer.idx,label2idx,parsed};
+  }));
+  if(signal.aborted) return [];
+
+  /* aggregate, excluding self-votes */
+  const agg=new Map(good.map(g=>[g.idx,{idx:g.idx,model:g.model,color:g.color,sum:0,count:0,comments:[]}]));
+  reviews.forEach(rv=>{
+    const rows=rv.parsed?.scores; if(!Array.isArray(rows)) return;
+    rows.forEach(row=>{
+      const target=rv.label2idx[String(row.label||'').trim().toUpperCase()];
+      if(target===undefined) return;
+      if(target===rv.reviewer) return;                       // drop self-scoring
+      const nums=[row.accuracy,row.reasoning,row.usefulness].map(Number).filter(x=>x>=0&&x<=10&&!isNaN(x));
+      if(!nums.length) return;
+      const e=agg.get(target); if(!e) return;
+      e.sum+=nums.reduce((a,b)=>a+b,0)/nums.length; e.count++;
+      if(row.critique) e.comments.push(String(row.critique).trim());
+    });
+  });
+  const out=[...agg.values()].map(e=>({...e,mean:e.count?e.sum/e.count:0}))
+    .sort((a,b)=>b.mean-a.mean)
+    .map((e,i)=>({...e,rank:i+1}));
+
+  /* badge each seat card */
+  out.forEach(r=>{
+    const card=cards[r.idx]; if(!card||!r.count) return;
+    const chip=document.createElement('span');
+    chip.className='scorechip'+(r.rank===1?' top':'');
+    chip.textContent=(r.rank===1?'★ ':'#'+r.rank+' ')+r.mean.toFixed(1);
+    card.meta.parentNode.insertBefore(chip,card.meta);
+  });
+  return out;
+}
+function renderBoard(board,ranking,good){
+  if(!ranking||!ranking.length||!ranking.some(r=>r.count)){
+    board.innerHTML='<div style="padding:12px 14px;font-size:12.8px;color:var(--ink-3)">Peer review returned no usable scores — the chair will weigh the answers unaided.</div>';
+    return;
+  }
+  board.innerHTML='';
+  const max=Math.max(...ranking.map(r=>r.mean),1);
+  ranking.forEach((r,i)=>{
+    const row=document.createElement('div');
+    row.className='brow'; row.style.setProperty('--seatcolor',r.color); row.style.animationDelay=(i*70)+'ms';
+    row.innerHTML=`<span class="rank">${r.rank===1?'★':r.rank}</span>
+      <span class="who">${esc(shortName(r.model))}</span>
+      <span class="bar"><i></i></span>
+      <span class="num">${r.count?r.mean.toFixed(1)+'/10':'—'}</span>
+      <button class="peek" aria-expanded="false" aria-label="Show critiques">⌄</button>`;
+    board.appendChild(row);
+    requestAnimationFrame(()=>{row.querySelector('.bar i').style.width=(r.mean/max*100)+'%'});
+    const crit=document.createElement('div');
+    crit.className='critiques'; crit.hidden=true;
+    crit.innerHTML=r.comments.length
+      ? r.comments.map(c=>`<div>${esc(c)}</div>`).join('')
+      : '<div>No written critique returned.</div>';
+    board.appendChild(crit);
+    const peek=row.querySelector('.peek');
+    peek.onclick=()=>{const open=peek.getAttribute('aria-expanded')==='true';
+      peek.setAttribute('aria-expanded',String(!open)); crit.hidden=open};
+  });
+  const foot=document.createElement('div');
+  foot.style.cssText='padding:7px 13px 9px;font-size:11.5px;color:var(--ink-3)';
+  foot.textContent='Scores are means of the other seats only — self-votes are discarded.';
+  board.appendChild(foot);
+}
+</script>
+<script>
+/* ==================== DEEP STUDY ==================== */
+const STUDY_SYS=`You build rigorous study packs. Given a topic, produce ONE markdown document using EXACTLY these section headers, in this order, and nothing outside them:
+
+## ORIENT
+Two or three sentences: what this is, and why it is worth knowing. No throat-clearing.
+
+## MAP
+5-8 bullets. Each is "**Term** — one-line definition". These are the concepts everything else hangs on.
+
+## CORE
+Three labelled passes over the same idea, each a short paragraph:
+**Plainly:** the intuition, no jargon.
+**Properly:** the real mechanism, with the correct terminology.
+**Deeper:** the subtlety an expert cares about — an edge case, a limitation, a common formal statement.
+
+## MISCONCEPTIONS
+3-5 bullets, each formatted "Wrong: … → Right: …".
+
+## EXAMPLE
+One concrete worked example or scenario, stepped through. Use a numbered list.
+
+## FLASHCARDS
+8-12 lines, each formatted exactly "question :: answer". No bullets, no numbering. Keep answers under 20 words.
+
+## QUIZ
+5 questions. Format each as a numbered question line followed by a line starting "Answer:".
+
+## GO DEEPER
+3-4 bullets naming specific books, papers, or courses, each with a clause on why.
+
+Write for an intelligent adult who is new to this topic. Be concrete. Prefer real numbers and named examples over vague description.`;
+
+async function runStudy(turn,topic,signal){
+  stageLabel(turn,null,'Building your study pack');
+  const pack=document.createElement('article');
+  pack.className='pack';
+  pack.innerHTML=`<header>
+      <div class="avatar">✦</div>
+      <div class="cardname">Study pack<span>${esc(cfg.studyModel)}</span></div>
+      <div class="meta">…</div>
+    </header>
+    <div class="body" data-live></div>`;
+  turn.appendChild(pack); stickScroll();
+
+  const body=pack.querySelector('[data-live]');
+  const meta=pack.querySelector('.meta');
+  body.innerHTML='<div class="progressline"><i></i></div><div style="margin-top:12px"><div class="skeleton" style="width:92%"></div><div class="skeleton" style="width:76%"></div><div class="skeleton" style="width:58%"></div></div>';
+
+  const t0=performance.now(); let acc='',first=null;
+  const onDelta=d=>{
+    if(first===null){first=performance.now()-t0}
+    acc+=d;
+    body.innerHTML=md(acc)+'<span class="caret" style="--seatcolor:var(--sys-teal)"></span> ';
+    meta.textContent=`${Math.round(first)}ms · building`;
+    stickScroll();
+  };
+  const msgs=[{role:'system',content:STUDY_SYS},{role:'user',content:`Topic:\n${topic}`}];
+  try{
+    if(cfg.conn==='demo'){ for await(const c of demoStream('__study',msgs,signal)) onDelta(c) }
+    else await chatStream(cfg.studyModel,msgs,{signal,onDelta});
+  }catch(err){
+    if(err.name==='AbortError'){ body.innerHTML=acc?md(acc)+'<p><em style="color:var(--ink-3)">Stopped.</em></p>':'<em>Stopped.</em>'; meta.textContent='stopped'; return }
+    pack.classList.add('err');
+    const corsy=/Failed to fetch|NetworkError|Load failed/i.test(err.message);
+    body.innerHTML=`<strong style="color:var(--err)">${esc(err.message)}</strong>`+(corsy
+      ?`<p style="margin-top:8px">Could not reach <code>${esc(cfg.baseUrl)}</code>. Start the proxy with <code>node server.mjs</code> and pick <b>Local proxy</b>.</p>`:'');
+    meta.textContent='failed'; return;
+  }
+  meta.textContent=`${Math.round(performance.now()-t0)}ms · ${acc.split(/\s+/).filter(Boolean).length}w`;
+  renderPack(pack,body,acc,topic);
+  remember(topic,acc.slice(0,4000));
+  saveRun({mode:'study',prompt:topic,models:[cfg.studyModel],ms:Math.round(performance.now()-t0),
+    payload:{model:cfg.studyModel,raw:acc}});
+  stickScroll();
+}
+
+function splitSections(text){
+  const out={}; let cur=null,buf=[];
+  text.split('\n').forEach(line=>{
+    const m=line.match(/^##\s+([A-Z ]{3,})\s*$/);
+    if(m){ if(cur) out[cur]=buf.join('\n').trim(); cur=m[1].trim(); buf=[]; }
+    else if(cur) buf.push(line);
+  });
+  if(cur) out[cur]=buf.join('\n').trim();
+  return out;
+}
+function parseFlashcards(src=''){
+  return src.split('\n').map(l=>l.replace(/^[-*\d.)\s]+/,'').trim()).filter(Boolean)
+    .map(l=>{const i=l.indexOf('::');return i<0?null:{q:l.slice(0,i).trim(),a:l.slice(i+2).trim()}})
+    .filter(x=>x&&x.q&&x.a);
+}
+function parseQuiz(src=''){
+  const items=[]; let cur=null;
+  src.split('\n').forEach(raw=>{
+    const l=raw.trim(); if(!l) return;
+    const am=l.match(/^\**answer\**\s*[:\-]\s*(.+)$/i);
+    if(am){ if(cur){cur.a=am[1].trim();items.push(cur);cur=null} return }
+    const qm=l.match(/^(?:\d+[.)]|[-*])\s*(.+)$/);
+    if(qm){ if(cur) items.push(cur); cur={q:qm[1].replace(/^\**|\**$/g,'').trim(),a:''} }
+    else if(cur&&!cur.a) cur.q+=' '+l;
+  });
+  if(cur) items.push(cur);
+  return items.filter(x=>x.q);
+}
+
+function renderPack(pack,body,raw,topic){
+  const S=splitSections(raw);
+  const cards=parseFlashcards(S.FLASHCARDS);
+  const quiz=parseQuiz(S.QUIZ);
+  const overview=[S.ORIENT&&`## Orientation\n${S.ORIENT}`,S.MAP&&`## Concept map\n${S.MAP}`].filter(Boolean).join('\n\n');
+  const core=S.CORE||'';
+  const misc=[S.MISCONCEPTIONS&&`## Misconceptions\n${S.MISCONCEPTIONS}`,S.EXAMPLE&&`## Worked example\n${S.EXAMPLE}`].filter(Boolean).join('\n\n');
+  const deeper=S['GO DEEPER']||'';
+
+  const panes=[];
+  if(overview) panes.push({k:'overview',t:'Overview',html:md(overview)});
+  if(core) panes.push({k:'core',t:'Explanation',html:md(core)});
+  if(misc) panes.push({k:'traps',t:'Traps & example',html:md(misc)});
+  if(cards.length) panes.push({k:'cards',t:`Flashcards · ${cards.length}`,html:''});
+  if(quiz.length) panes.push({k:'quiz',t:`Quiz · ${quiz.length}`,html:''});
+  if(deeper) panes.push({k:'more',t:'Go deeper',html:md(deeper)});
+  if(panes.length<2){ body.innerHTML=md(raw); return; }        // model went off-format: show it plain
+
+  const tabs=document.createElement('div'); tabs.className='packtabs'; tabs.setAttribute('role','tablist');
+  const holder=document.createElement('div');
+  body.replaceWith(holder); holder.className='packbody';
+  pack.appendChild(tabs);
+
+  panes.forEach((p,i)=>{
+    const b=document.createElement('button');
+    b.textContent=p.t; b.setAttribute('role','tab'); b.setAttribute('aria-selected',String(i===0));
+    tabs.appendChild(b);
+    const pane=document.createElement('div');
+    pane.className='packpane'; pane.hidden=i!==0;
+    if(p.k==='cards') pane.appendChild(buildFlashcards(cards));
+    else if(p.k==='quiz') pane.appendChild(buildQuiz(quiz));
+    else pane.innerHTML=`<div class="body" style="padding:0">${p.html}</div>`;
+    holder.appendChild(pane);
+    b.onclick=()=>{
+      [...tabs.children].forEach((x,j)=>x.setAttribute('aria-selected',String(j===i)));
+      [...holder.children].forEach((x,j)=>{x.hidden=j!==i;});
+    };
+  });
+  pack.appendChild(holder);
+}
+function buildFlashcards(cards){
+  const wrap=document.createElement('div'); wrap.className='flashwrap';
+  cards.forEach((c,i)=>{
+    const b=document.createElement('button');
+    b.className='flash'; b.setAttribute('aria-pressed','false'); b.style.animationDelay=(i*45)+'ms';
+    b.innerHTML=`<span class="in"><span class="f">${esc(c.q)}</span><span class="b">${esc(c.a)}</span></span>`;
+    b.onclick=()=>b.setAttribute('aria-pressed',String(b.getAttribute('aria-pressed')!=='true'));
+    wrap.appendChild(b);
+  });
+  const hint=document.createElement('div');
+  hint.style.cssText='grid-column:1/-1;font-size:11.5px;color:var(--ink-3);text-align:center;padding-top:4px';
+  hint.textContent='Tap a card to flip it.';
+  wrap.appendChild(hint);
+  return wrap;
+}
+function buildQuiz(items){
+  const wrap=document.createElement('div'); wrap.className='quiz';
+  items.forEach((q,i)=>{
+    const el=document.createElement('div'); el.className='qitem';
+    el.innerHTML=`<div class="q">${i+1}. ${esc(q.q)}</div><button class="reveal">Show answer</button>`;
+    const btn=el.querySelector('.reveal');
+    btn.onclick=()=>{
+      if(el.querySelector('.a')){el.querySelector('.a').remove();btn.textContent='Show answer';return}
+      const a=document.createElement('div'); a.className='a'; a.textContent=q.a||'—';
+      el.appendChild(a); btn.textContent='Hide answer';
+    };
+    wrap.appendChild(el);
+  });
+  return wrap;
+}
+</script>
+<script>
+/* ==================== HUMANIZER ====================
+   Based on Wikipedia's "Signs of AI writing" (WikiProject AI Cleanup).
+   Three passes in one call: draft → self-audit → final rewrite.        */
+const HUMAN_SYS=`You are a ruthless editor who strips AI tells out of writing. You know the Wikipedia "Signs of AI writing" catalogue cold and you edit by ear, not by checklist.
+
+What you cut:
+- Significance inflation: "stands as a testament", "marks a pivotal moment", "underscores the importance", "evolving landscape", "leaves an indelible mark", "setting the stage for".
+- Promotional gloss: "nestled", "in the heart of", "boasts", "vibrant", "rich cultural heritage", "breathtaking", "groundbreaking", "seamless", "renowned", "unlock the potential".
+- Participle padding: clauses tacked on ending in -ing that add no information — "highlighting its role", "reflecting broader trends", "ensuring success", "showcasing", "fostering".
+- Copula avoidance: "serves as", "stands as", "functions as", "represents a" where plain "is" works.
+- Negative parallelism: "It's not just X, it's Y", "not only... but also". Also clipped tail negations like "no guessing", "no wasted motion".
+- Rule of three: forced triplets of adjectives, nouns or clauses used to sound thorough.
+- Elegant variation: cycling synonyms for the same subject across sentences.
+- False ranges: "from X to Y" where X and Y are not ends of any real scale.
+- Vague attribution: "experts argue", "industry observers note", "studies show" with nothing named.
+- Em dash spray, boldface sprinkling, emoji bullets, title case headings, curly quotes.
+- Filler and hedging: "it is important to note", "in order to", "at this point in time", "could potentially possibly".
+- Persuasive authority tropes: "the real question is", "at its core", "what really matters", "fundamentally".
+- Signposting: "let's dive in", "here's what you need to know", "without further ado".
+- Generic uplift endings: "the future looks bright", "exciting times ahead", "a step in the right direction".
+- Chatbot residue: "Great question!", "I hope this helps", "Let me know if...".
+
+What you protect:
+- The author's actual claims, facts, numbers, names and intent. Never invent a fact, a statistic, a source or a quote to replace a vague one. If the original is vague, stay vague or cut the sentence — do not fabricate specificity.
+- The register. A cover letter stays a cover letter. Do not make formal writing chatty or casual writing stiff.
+- Length within reason. Cutting fat is good; gutting content is not.
+
+What you add:
+- Varied rhythm. Some short sentences. Some that take longer to arrive.
+- A point of view where the genre allows it, and plain honest phrasing where it does not.
+- Ordinary words. "use" over "utilise", "about" over "regarding", "has" over "possesses".
+
+Output EXACTLY these four sections, in this order, with these headers and nothing else:
+
+## DRAFT
+Your first rewrite, complete.
+
+## TELLS
+A short bullet list naming what STILL reads as machine-written in your own draft above. Be specific and unsparing — rhythm too even, contrast too tidy, a phrase that survived, an ending that sounds like a slogan. If a bullet just says "nothing", you are not looking hard enough. Three to five bullets.
+
+## FINAL
+The rewrite again, fixing everything you named in TELLS. This is the version the user will actually use. It must read like one person wrote it in one sitting.
+
+## CHANGES
+Three to six bullets, each naming the pattern you removed and the phrase it applied to.`;
+
+async function runHumanize(turn,text,signal){
+  stageLabel(turn,null,'De-slopping');
+  const card=document.createElement('article');
+  card.className='human';
+  card.innerHTML=`<header>
+      <div class="avatar">H</div>
+      <div class="cardname">Humanized<span>${esc(cfg.humanizeModel)}</span></div>
+      <div class="meta">…</div>
+    </header>
+    <div class="finalwrap" data-live>
+      <div class="progressline"><i style="background:linear-gradient(90deg,transparent,var(--sys-green),transparent)"></i></div>
+      <div style="margin-top:12px">
+        <div class="skeleton" style="width:93%"></div>
+        <div class="skeleton" style="width:81%"></div>
+        <div class="skeleton" style="width:62%"></div>
+      </div>
+    </div>`;
+  turn.appendChild(card); stickScroll();
+
+  const live=card.querySelector('[data-live]');
+  const meta=card.querySelector('.meta');
+  const t0=performance.now();
+  let acc='',first=null;
+
+  const onDelta=d=>{
+    if(first===null) first=performance.now()-t0;
+    acc+=d;
+    const stage = /##\s*FINAL/i.test(acc) ? 'writing final'
+                : /##\s*TELLS/i.test(acc) ? 'auditing its own draft'
+                : 'drafting';
+    meta.textContent=stage;
+    live.innerHTML=`<div class="finaltext">${md(stripHeaders(acc))}<span class="caret" style="--seatcolor:var(--sys-green)"></span></div>`;
+    stickScroll();
+  };
+
+  const voice = cfg.voiceSample
+    ? `\n\nMatch this author's voice — sentence length, vocabulary level, punctuation habits, how they open and close. Do not imitate their subject matter, only their manner:\n"""\n${cfg.voiceSample.slice(0,2000)}\n"""`
+    : '';
+
+  const msgs=[
+    {role:'system',content:HUMAN_SYS+voice},
+    {role:'user',content:`Humanize the following text.\n\n"""\n${text}\n"""`}
+  ];
+
+  try{
+    if(cfg.conn==='demo'){ for await(const c of demoStream('__humanize',msgs,signal)) onDelta(c) }
+    else await chatStream(cfg.humanizeModel,msgs,{signal,onDelta});
+  }catch(err){
+    if(err.name==='AbortError'){
+      live.innerHTML=acc?`<div class="finaltext">${md(stripHeaders(acc))}</div><p style="color:var(--ink-3);font-size:13px">Stopped.</p>`:'<em style="color:var(--ink-3)">Stopped.</em>';
+      meta.textContent='stopped'; return;
+    }
+    card.style.borderColor='color-mix(in srgb,var(--sys-red) 40%,var(--line))';
+    const corsy=/Failed to fetch|NetworkError|Load failed/i.test(err.message);
+    live.innerHTML=`<strong style="color:var(--err)">${esc(err.message)}</strong>`+(corsy
+      ?`<p style="margin-top:8px;font-size:13px">Could not reach <code>${esc(cfg.baseUrl)}</code>. Start the proxy with <code>node server.mjs</code> and pick <b>Local proxy</b>.</p>`:'');
+    meta.textContent='failed'; return;
+  }
+
+  meta.textContent=`${Math.round(performance.now()-t0)}ms`;
+  renderHumanized(card,live,acc,text);
+  remember(text,acc);
+  saveRun({mode:'humanize',prompt:text,models:[cfg.humanizeModel],ms:Math.round(performance.now()-t0),
+    payload:{model:cfg.humanizeModel,raw:acc}});
+  stickScroll();
+}
+
+/* while streaming, drop the section headers so the body reads as prose */
+function stripHeaders(t){ return t.replace(/^##\s*(DRAFT|TELLS|FINAL|CHANGES)\s*$/gim,'') }
+
+function humanSections(raw){
+  const grab=(name)=>{
+    const re=new RegExp('##\\s*'+name+'\\s*\\n([\\s\\S]*?)(?=\\n##\\s|$)','i');
+    const m=raw.match(re); return m?m[1].trim():'';
+  };
+  return {draft:grab('DRAFT'),tells:grab('TELLS'),final:grab('FINAL'),changes:grab('CHANGES')};
+}
+const bullets=src=>src.split('\n').map(l=>l.replace(/^[-*•]\s*/,'').trim()).filter(Boolean);
+const words=s=>s.split(/\s+/).filter(Boolean).length;
+
+function renderHumanized(card,live,raw,original){
+  const S=humanSections(raw);
+  const finalText=S.final||S.draft||raw;
+  if(!S.final&&!S.draft){ live.innerHTML=`<div class="finaltext">${md(raw)}</div>`; return }
+
+  live.innerHTML=`<div class="finaltext">${md(finalText)}</div>`;
+
+  /* action bar */
+  const bar=document.createElement('div');
+  bar.className='finalbar';
+  bar.innerHTML=`<button class="copybtn" type="button">
+      <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round"><rect x="9" y="9" width="11" height="11" rx="2.5"/><path d="M5.5 15H5a1.8 1.8 0 0 1-1.8-1.8V5A1.8 1.8 0 0 1 5 3.2h8.2A1.8 1.8 0 0 1 15 5v.5"/></svg>
+      Copy
+    </button>
+    <span class="wordstat">${words(original)} words in · ${words(finalText)} out</span>`;
+  const copy=bar.querySelector('.copybtn');
+  copy.onclick=async()=>{
+    try{ await navigator.clipboard.writeText(finalText.trim()) }
+    catch{
+      const ta=document.createElement('textarea'); ta.value=finalText.trim();
+      document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove();
+    }
+    copy.classList.add('done'); copy.lastChild.textContent=' Copied';
+    setTimeout(()=>{copy.classList.remove('done');copy.lastChild.textContent=' Copy'},1900);
+  };
+  card.appendChild(bar);
+
+  const section=(title,inner,open)=>{
+    const d=document.createElement('details');
+    d.className='hsec'; d.open=!!open;
+    d.innerHTML=`<summary>${esc(title)}</summary><div class="inner">${inner}</div>`;
+    card.appendChild(d);
+  };
+  if(S.tells){
+    const list=bullets(S.tells);
+    section(`What still read as AI in the first draft · ${list.length}`,
+      `<ul class="tells">${list.map(b=>`<li>${md(b).replace(/^<p>|<\/p>$/g,'')}</li>`).join('')}</ul>`, true);
+  }
+  if(S.changes){
+    const list=bullets(S.changes);
+    section(`Patterns removed · ${list.length}`,
+      `<ul class="tells">${list.map(b=>`<li>${md(b).replace(/^<p>|<\/p>$/g,'')}</li>`).join('')}</ul>`);
+  }
+  if(S.draft) section('First draft, before the audit',`<div class="body" style="padding:0">${md(S.draft)}</div>`);
+  section('Your original',`<div class="pretext">${esc(original)}</div>`);
+}
+</script>
+<script>
+/* ==================== demo mode ==================== */
+const DEMO={
+  __quick:"**Monorepo, with guardrails.** At twelve people and three services the coordination tax of three repos already outweighs the isolation they buy you.\n\nSet up path-filtered CI on day one and keep deploy pipelines independent per service. Revisit around forty engineers, when CI queueing usually becomes the real pain.\n\n*(Demo mode — canned text. Add a key and run the proxy for the real thing.)*",
+  'openai/gpt-4o':"**Short answer: yes, with guardrails.**\n\nAt twelve people and three services, the coordination cost of three repos already outweighs the isolation you get from them. A monorepo buys atomic cross-service changes and one dependency graph.\n\n- Enforce ownership with `CODEOWNERS`, not folder etiquette.\n- Adopt affected-target detection early — Nx, Turborepo, or Bazel if you are polyglot.\n- Keep deploys independent. A shared repo is not a shared release train.\n\nRevisit at roughly forty engineers, when CI queueing becomes the pain point.",
+  'anthropic/claude-sonnet-4':"I'd say yes — but honestly, repo layout is rarely what makes or breaks a team this size.\n\nWhat actually helps at twelve people is that a single PR can change a service and its consumer together. That removes an entire category of version-skew bugs.\n\nThe cost is real: CI gets slower unless you invest in selective builds on day one, and tooling gets opinionated fast. If nobody wants to own build infrastructure, three small repos with a shared template will hurt less.",
+  'google/gemini-2.5-pro':"**Recommendation: monorepo.**\n\n| Factor | Monorepo | Polyrepo |\n|---|---|---|\n| Cross-service change | One PR | Coordinated PRs |\n| CI cost | Higher without caching | Naturally scoped |\n| Onboarding | One clone | Repo scavenger hunt |\n\nAt three services the polyrepo overhead is pure tax. Set up remote build caching before the first slow-CI complaint, not after.",
+  'meta-llama/llama-3.3-70b-instruct':"Yes. Three services, twelve people — a monorepo is the lower-friction choice.\n\n1. One lockfile, one toolchain version.\n2. Path-filtered CI so a docs change does not rebuild everything.\n3. Independent deploy pipelines per service.\n\nThe main risk is treating the monorepo as permission to couple services tightly. Keep module boundaries explicit and the layout stays an implementation detail.",
+  __chair:"**Unanimous on the call, split on the caveat.**\n\nAll four seats say monorepo, and the peer scores put the two answers that led with CI economics on top. Where the bench diverges is the failure mode it fears:\n\n- Three members lead with **CI cost** — affected-target builds and remote caching are the price of admission, not a later optimisation.\n- One member raises the sharper point: a monorepo tempts teams into **tight coupling**. That risk is organisational, and no build tool fixes it.\n\n**Verdict:** go monorepo, and treat two things as launch requirements rather than follow-ups — path-filtered CI from the first commit, and independent deploy pipelines per service. If nobody will own build tooling, that is the one honest reason to stay with separate repos.",
+  __generic:"*(Demo mode — canned text so you can feel the interface. Add your Mesh key and run the local proxy to hear from the real model.)*\n\nA live seat would answer here, streaming token by token, with first-token latency and word count in the card header. Seats run in parallel and fail independently, so one bad model slug never blocks the bench.",
+  __study:`## ORIENT
+Bayesian inference is a rule for changing your mind by a fixed amount when evidence arrives. It matters because it is the only coherent way to combine what you already believed with what you just saw — which is most of medicine, spam filtering, and A/B testing.
+
+## MAP
+- **Prior** — what you believed before seeing this data, expressed as a distribution.
+- **Likelihood** — how probable the observed data is under each possible hypothesis.
+- **Posterior** — the updated belief after evidence; the actual output you want.
+- **Evidence (marginal likelihood)** — the normalising constant that makes it all sum to one.
+- **Conjugacy** — prior and likelihood pairs whose posterior stays in the same family, so the maths closes.
+- **Credible interval** — the Bayesian answer to "where is the parameter", unlike a confidence interval.
+
+## CORE
+**Plainly:** You start with a hunch, you see some evidence, and you end with a better hunch. Bayes' rule just says exactly how much the evidence should move you — strong evidence moves you a lot, weak evidence barely at all.
+
+**Properly:** Posterior ∝ likelihood × prior. Given data D and hypothesis H, P(H|D) = P(D|H)P(H)/P(D). The likelihood re-weights every point of the prior by how well that hypothesis predicted what actually happened, then everything is renormalised by P(D).
+
+**Deeper:** The posterior is a distribution, not a point, and collapsing it to a mean throws away the thing that made it useful. Priors stop mattering as data accumulates — except in the tails, in hierarchical models, and whenever the likelihood is nearly flat, which is exactly where people quietly rely on defaults they never examined.
+
+## MISCONCEPTIONS
+- Wrong: a 95% credible interval and a 95% confidence interval say the same thing → Right: the credible interval is a statement about the parameter; the confidence interval is a statement about the procedure.
+- Wrong: priors are unscientific bias → Right: every method has assumptions; Bayesian methods make them explicit and auditable.
+- Wrong: a flat prior is "no assumption" → Right: flat in one parameterisation is strongly informative in another.
+- Wrong: more data always washes the prior out → Right: not in hierarchical models or under model misspecification.
+
+## EXAMPLE
+1. A disease affects 1 in 1,000 people. Prior P(sick) = 0.001.
+2. A test has 99% sensitivity and 95% specificity.
+3. You test positive. Likelihood of that result if sick = 0.99; if healthy = 0.05.
+4. Numerator: 0.99 × 0.001 = 0.00099. Healthy branch: 0.05 × 0.999 = 0.04995.
+5. Posterior = 0.00099 / (0.00099 + 0.04995) ≈ 0.019.
+6. Despite a "99% accurate" test, you are about 2% likely to be sick. The base rate dominates.
+
+## FLASHCARDS
+What does the prior represent? :: Your belief about the parameter before seeing this data.
+Write Bayes' rule. :: P(H|D) = P(D|H) · P(H) / P(D)
+What is the likelihood a function of? :: The hypothesis, with the data held fixed.
+What does P(D) do in the formula? :: Normalises the posterior so it integrates to one.
+Credible vs confidence interval? :: Credible is about the parameter; confidence is about the procedure.
+Why is conjugacy convenient? :: The posterior stays in the same family, so updates are closed-form.
+Conjugate prior for a binomial likelihood? :: The Beta distribution.
+When do priors keep mattering? :: Sparse data, tails, hierarchical models, near-flat likelihoods.
+What does the disease-test example demonstrate? :: Low base rates dominate even accurate tests.
+Is the posterior a number? :: No — a distribution; the mean is only a summary.
+
+## QUIZ
+1. A test is 99% sensitive and 95% specific for a condition affecting 1 in 1,000. You test positive. Roughly what is the probability you have it?
+Answer: About 2%. The 0.1% base rate overwhelms the test's accuracy, producing far more false positives than true ones.
+2. Why is calling a flat prior "uninformative" misleading?
+Answer: Flatness is not parameterisation-invariant — uniform on a probability is not uniform on its log-odds.
+3. What is the practical difference between a credible and a confidence interval?
+Answer: A credible interval states where the parameter probably lies; a confidence interval describes long-run coverage of the procedure.
+4. Two labs analyse identical data with different priors and reach different conclusions. Is Bayesian inference broken?
+Answer: No — it exposes that the disagreement was in the assumptions, which frequentist framing would have hidden in model choice.
+5. When does the choice of prior stop mattering much?
+Answer: When the likelihood is sharply peaked relative to the prior — usually plenty of data on a well-specified model.
+
+## GO DEEPER
+- *Statistical Rethinking* (McElreath) — the best first book; builds intuition before notation.
+- *Bayesian Data Analysis* (Gelman et al.) — the standard reference once you need workflow and diagnostics.
+- Stan's user guide — where the theory meets an actual sampler you will run.
+- Kruschke's *Doing Bayesian Data Analysis* — strong on the interval-interpretation confusion above.`
+};
+DEMO.__humanize=`## DRAFT
+Our platform helps teams work faster. It handles the coordination overhead that usually eats a project — tracking who owns what, chasing status, keeping the plan honest — so the people doing the work can stay on the work.
+
+That is the whole pitch. No transformation, no journey.
+
+## TELLS
+- The rhythm is suspiciously even; every paragraph lands on a tidy closing beat.
+- "No transformation, no journey" is a tailing negation, the exact fragment style the original was guilty of.
+- The triple "tracking / chasing / keeping" is a rule-of-three wearing a disguise.
+- "so the people doing the work can stay on the work" is a neat chiasmus that reads written-to-impress rather than said.
+- Zero specifics survived. It is clean, but it says almost nothing a reader could check.
+
+## FINAL
+Our platform takes the coordination work off your team. It tracks who owns what and keeps the plan current, so nobody spends Monday morning asking for status.
+
+That is the pitch. It is a project tool, not a transformation.
+
+## CHANGES
+- Cut significance inflation: "stands as a testament to innovation", "pivotal".
+- Cut promotional gloss: "nestled in the heart of", "groundbreaking", "seamlessly", "unlock their full potential".
+- Cut the negative parallelism: "It's not just a tool—it's a catalyst".
+- Cut the rule of three: "fostering collaboration, driving efficiency, and enhancing outcomes".
+- Replaced the em dash pile-up with plain sentences.
+- Swapped "empowering teams" for a concrete claim about status meetings.`;
+
+async function* demoStream(key,messages,signal){
+  const last=messages[messages.length-1]?.content;
+  const q=typeof last==='string'?last:(last?.[0]?.text||'');
+  const sys=typeof messages[0]?.content==='string'?messages[0].content:'';
+  let body;
+  if(key==='__humanize'||sys.startsWith('You are a ruthless editor')) body=DEMO.__humanize;
+  else if(key==='__study'||sys.startsWith('You build rigorous')) body=DEMO.__study;
+  else if(key==='__chair'||sys.startsWith('You chair')) body=/monorepo/i.test(q)?DEMO.__chair:DEMO.__generic;
+  else if(key==='__quick') body=/monorepo/i.test(q)?DEMO.__quick:DEMO.__generic;
+  else body=(/monorepo/i.test(q)&&DEMO[key])?DEMO[key]:DEMO.__generic;
+
+  await sleep(140+Math.random()*380,signal);
+  const toks=body.match(/\S+\s*/g)||[];
+  const fast=body.length>2500;
+  for(const t of toks){
+    if(signal.aborted) throw Object.assign(new Error('aborted'),{name:'AbortError'});
+    yield t;
+    await sleep(fast?2+Math.random()*6:7+Math.random()*22,signal);
+  }
+}
+async function demoPeerJSON(order,good,signal){
+  await sleep(500+Math.random()*900,signal);
+  const notes=['Clear and well-scoped, though light on the CI cost.','Strongest reasoning; names the organisational risk others miss.','Good structure, but the table oversimplifies the tradeoff.','Correct call, slightly generic in the specifics.'];
+  const scores=order.map((oi,pos)=>{
+    const base=6.8+Math.random()*2.6;
+    return {label:LETTERS[pos],accuracy:Math.min(10,Math.round(base+.4)),reasoning:Math.min(10,Math.round(base)),
+      usefulness:Math.min(10,Math.round(base+ (Math.random()>.5?1:0))),critique:notes[oi%notes.length]};
+  });
+  return JSON.stringify({scores,best:scores[0].label});
+}
+
+/* ==================== boot ==================== */
+applyTheme();
+paintSettings();
+setRunMode(cfg.runMode,{silent:true});
+paintSuggests();
+refreshStatus();
+autoGrow();
+syncSend();
+requestAnimationFrame(positionKnob);
+setTimeout(positionKnob,320);
+document.fonts?.ready?.then(positionKnob);
+if(/localhost|127\.0\.0\.1/.test(location.host)&&cfg.conn==='demo'&&!cfg.apiKey){
+  cfg.baseUrl=location.origin+'/v1'; saveCfg(); paintSettings();
+}
+detectStore().then(pullSettingsIfFresh);
+</script>
+</body>
+</html>

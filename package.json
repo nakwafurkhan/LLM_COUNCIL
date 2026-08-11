@@ -1,0 +1,15 @@
+{
+  "name": "llm-council",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Quick / Council / Study / Humanize chat client for the Mesh API gateway, with a local CORS proxy and optional MongoDB history.",
+  "scripts": {
+    "start": "node server.mjs",
+    "build": "cat parts/01-head.html parts/02-css.html parts/03-css.html parts/04-body.html parts/05-core.js parts/06-settings.js parts/06b-history.js parts/07-api.js parts/08-run.js parts/09-study.js parts/09b-humanize.js parts/10-demo.js > index.html"
+  },
+  "engines": { "node": ">=18" },
+  "optionalDependencies": {
+    "mongodb": "^6.10.0"
+  }
+}

@@ -1,0 +1,11 @@
+node_modules/
+package-lock.json
+
+# local history store written by the file driver
+council-data.json
+council-data.json.tmp
+
+.env
+.env.*
+.DS_Store
+*.log
