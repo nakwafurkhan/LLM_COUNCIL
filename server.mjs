@@ -18,14 +18,42 @@
 
 import { createServer } from 'node:http';
 import { readFile, stat } from 'node:fs/promises';
+import { readFileSync, existsSync } from 'node:fs';
 import { extname, join, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createStore, scrubSettings } from './store.mjs';
 
+const ROOT_DIR = fileURLToPath(new URL('.', import.meta.url));
+
+/* ------------------------------------------------------------------ .env
+   A twelve-line parser beats a dependency and beats making people remember
+   `node --env-file`, which only exists on Node 20.6+. Real environment
+   variables always win, so `MESH_API_KEY=... node server.mjs` still overrides
+   whatever is in the file. */
+function loadDotEnv(file = join(ROOT_DIR, '.env')) {
+  if (!existsSync(file)) return 0;
+  let n = 0;
+  for (let line of readFileSync(file, 'utf8').split('\n')) {
+    line = line.trim();
+    if (!line || line.startsWith('#')) continue;
+    if (line.startsWith('export ')) line = line.slice(7).trim();
+    const eq = line.indexOf('=');
+    if (eq < 1) continue;
+    const key = line.slice(0, eq).trim();
+    let val = line.slice(eq + 1).trim();
+    if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+      val = val.slice(1, -1);
+    }
+    if (process.env[key] === undefined) { process.env[key] = val; n++; }
+  }
+  return n;
+}
+const envLoaded = loadDotEnv();
+
 const PORT     = Number(process.env.PORT || 8787);
 const UPSTREAM = (process.env.MESH_BASE_URL || 'https://api.meshapi.ai').replace(/\/$/, '');
 const SERVER_KEY = process.env.MESH_API_KEY || '';
-const ROOT = fileURLToPath(new URL('.', import.meta.url));
+const ROOT = ROOT_DIR;
 
 const MIME = {
   '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8',
@@ -182,9 +210,10 @@ const server = createServer(async (req, res) => {
 server.listen(PORT, () => {
   console.log(`\n  LLM Council  →  http://localhost:${PORT}`);
   console.log(`  proxying /v1/*  →  ${UPSTREAM}/v1/*`);
+  if (envLoaded) console.log(`  .env: loaded ${envLoaded} variable${envLoaded === 1 ? '' : 's'}`);
   console.log(SERVER_KEY
-    ? '  key: from MESH_API_KEY (never sent to the browser)'
-    : '  key: none on the server — paste your rsk_ key in the app\'s Settings panel');
+    ? `  key: ${process.env.MESH_API_KEY ? 'MESH_API_KEY' : 'set'} — ${SERVER_KEY.slice(0, 8)}… (never sent to the browser)`
+    : '  key: none on the server — paste your rsk_ key in the app\'s Settings panel, or create a .env');
   console.log('  history: GET/POST /api/runs · settings: GET/PUT /api/settings\n');
 });
 

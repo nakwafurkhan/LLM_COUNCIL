@@ -21,6 +21,7 @@ is stamped with the mode it ran in.
 | `server.mjs` | Local dev server, CORS proxy to Mesh, and the history/settings API. Node 18+. |
 | `store.mjs` | Storage layer. MongoDB driver when `MONGODB_URI` is set, JSON file otherwise. |
 | `package.json` | Only `mongodb`, and only as an optional dependency. |
+| `.env.example` | Copy to `.env`. Every setting, documented, all optional. |
 | `parts/` | The source fragments `index.html` is concatenated from. Edit these, then rebuild. |
 | `harness.html` | Test rig — drives the app in a real iframe and prints measured geometry and persistence assertions. |
 
@@ -33,12 +34,40 @@ npm run build
 ## Run it
 
 ```bash
-MESH_API_KEY=rsk_your_key node server.mjs
-# → http://localhost:8787
+cp .env.example .env      # then put your key in it
+node server.mjs
+# → open http://localhost:8787
 ```
 
-With `MESH_API_KEY` set the key stays server-side and the browser never sees it. Otherwise
-paste it into Settings — it lives in `localStorage` only. Either way, pick **Local proxy**.
+Open the app at `http://localhost:8787`. It must be served **by** the proxy — opening
+`index.html` from disk (`file://`) or from an `https://` host cannot reach a local
+`http://` server, and every request will fail as a CORS or mixed-content error.
+
+### Configuration
+
+`server.mjs` reads a `.env` file from its own folder at startup — no dependency, no
+`--env-file` flag, works on Node 18. Real environment variables take precedence, so this
+still overrides the file:
+
+```bash
+MESH_API_KEY=rsk_other_key PORT=9000 node server.mjs
+```
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `MESH_API_KEY` | — | Key stays server-side; the browser never sees it |
+| `PORT` | `8787` | Port for the local server |
+| `MONGODB_URI` | — | History in MongoDB (needs `npm install mongodb`) |
+| `MONGODB_DB` | `llm_council` | Database name |
+| `MONGODB_RUNS` / `MONGODB_SETTINGS` | `runs` / `settings` | Collection names |
+| `COUNCIL_DB_FILE` | `./council-data.json` | Where the file store writes |
+| `MESH_BASE_URL` | `https://api.meshapi.ai` | Upstream gateway |
+
+`.env` is gitignored. Every variable is optional — with none of them the app still runs, in
+demo mode, against the file store.
+
+Prefer not to use a file? Paste the key into Settings instead; it lives in `localStorage`
+only and is never sent to the server. Either way, pick **Local proxy**.
 
 ## History
 

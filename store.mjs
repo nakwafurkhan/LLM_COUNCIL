@@ -12,10 +12,14 @@ import { readFile, writeFile, rename, mkdir } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { randomUUID } from 'node:crypto';
 
-const DB_NAME   = process.env.MONGODB_DB   || 'llm_council';
-const RUNS_COLL = process.env.MONGODB_RUNS || 'runs';
-const SET_COLL  = process.env.MONGODB_SETTINGS || 'settings';
-const FILE_PATH = resolve(process.env.COUNCIL_DB_FILE || './council-data.json');
+/* Read env lazily, never at module scope. ES imports are evaluated before the
+   importing module's body runs, so anything captured here would be read before
+   server.mjs has loaded .env — which silently ignored COUNCIL_DB_FILE and the
+   MONGODB_* names. Functions, not constants. */
+const dbName   = () => process.env.MONGODB_DB       || 'llm_council';
+const runsColl = () => process.env.MONGODB_RUNS     || 'runs';
+const setColl  = () => process.env.MONGODB_SETTINGS || 'settings';
+const filePath = () => resolve(process.env.COUNCIL_DB_FILE || './council-data.json');
 
 /* A settings blob must never carry the Mesh key to the server. Belt and braces:
    the client strips it before sending, and we strip it again on arrival. */
@@ -48,6 +52,7 @@ function normaliseRun(run = {}) {
 
 /* ------------------------------------------------------------------ file */
 function fileDriver() {
+  const FILE_PATH = filePath();
   let cache = null;
   let writing = Promise.resolve();
 
@@ -144,9 +149,9 @@ async function mongoDriver(uri) {
     appName: 'llm-council'
   });
   await client.connect();
-  const db = client.db(DB_NAME);
-  const runs = db.collection(RUNS_COLL);
-  const settings = db.collection(SET_COLL);
+  const db = client.db(dbName());
+  const runs = db.collection(runsColl());
+  const settings = db.collection(setColl());
 
   await runs.createIndex({ createdAt: -1 }).catch(() => {});
   await runs.createIndex({ id: 1 }, { unique: true }).catch(() => {});
@@ -158,7 +163,7 @@ async function mongoDriver(uri) {
 
   return {
     name: 'mongo',
-    detail: `${DB_NAME}.${RUNS_COLL}`,
+    detail: `${dbName()}.${runsColl()}`,
     async init() {},
     async listRuns({ limit = 50, mode, q } = {}) {
       const filter = {};
