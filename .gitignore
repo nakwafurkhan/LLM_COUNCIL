@@ -1,11 +1,13 @@
 node_modules/
 package-lock.json
 
-# local history store written by the file driver
-council-data.json
-council-data.json.tmp
+# built client, emitted by `npm run build`
+server/public/
 
 .env
 .env.*
+!.env.example
+
 .DS_Store
 *.log
+coverage/
