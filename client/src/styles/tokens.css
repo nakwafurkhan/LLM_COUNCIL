@@ -1,0 +1,59 @@
+:root{
+  --sys-blue:#007aff; --sys-purple:#af52de; --sys-green:#34c759;
+  --sys-red:#ff3b30; --sys-orange:#ff9500; --sys-teal:#30b0c7; --sys-pink:#ff2d55;
+
+  --bg:#eef0f4;
+  --panel:rgba(255,255,255,.78);
+  --panel-solid:#ffffff;
+  --chrome:rgba(246,247,250,.72);
+  --fill:rgba(118,118,128,.12);
+  --fill-2:rgba(118,118,128,.08);
+  --ink:#1d1d1f; --ink-2:#54565b; --ink-3:#8e8e93;
+  --line:rgba(60,60,67,.13); --line-2:rgba(60,60,67,.07);
+  --accent:var(--sys-blue); --chair:var(--sys-purple);
+  --ok:#1a8f45; --warn:#b8720a; --err:#d02a20; --err-soft:rgba(255,59,48,.08);
+
+  --r-xl:22px; --r-lg:16px; --r:12px; --r-sm:9px;
+  --shadow-1:0 1px 1px rgba(0,0,0,.04), 0 2px 6px rgba(0,0,0,.05);
+  --shadow-2:0 4px 14px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.05);
+  --shadow-3:0 20px 60px rgba(0,0,0,.22), 0 2px 8px rgba(0,0,0,.10);
+  --knob:0 1px 3px rgba(0,0,0,.16), 0 0 0 .5px rgba(0,0,0,.04);
+
+  --spring:cubic-bezier(.32,.72,0,1);
+  --ease:cubic-bezier(.4,0,.2,1);
+  --mono:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+  --sans:-apple-system,BlinkMacSystemFont,'SF Pro Text','SF Pro Display','Inter',system-ui,'Segoe UI',sans-serif;
+}
+
+[data-theme="dark"]{
+  --bg:#101013;
+  --panel:rgba(30,30,34,.74);
+  --panel-solid:#1e1e22;
+  --chrome:rgba(24,24,28,.72);
+  --fill:rgba(120,120,128,.24); --fill-2:rgba(120,120,128,.14);
+  --ink:#f2f2f7; --ink-2:#b4b4bb; --ink-3:#8a8a90;
+  --line:rgba(255,255,255,.10); --line-2:rgba(255,255,255,.06);
+  --accent:#0a84ff; --chair:#bf5af2;
+  --ok:#30d158; --warn:#ffd60a; --err:#ff453a; --err-soft:rgba(255,69,58,.12);
+  --shadow-1:0 1px 2px rgba(0,0,0,.5);
+  --shadow-2:0 6px 18px rgba(0,0,0,.55);
+  --shadow-3:0 24px 70px rgba(0,0,0,.7);
+  --knob:0 1px 3px rgba(0,0,0,.5), 0 0 0 .5px rgba(255,255,255,.06);
+}
+
+@keyframes rise{from{opacity:0;transform:translate3d(0,14px,0) scale(.985)}to{opacity:1;transform:none}}
+@keyframes popIn{from{opacity:0;transform:scale(.94)}to{opacity:1;transform:none}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes slideRight{from{opacity:0;transform:translate3d(18px,0,0)}to{opacity:1;transform:none}}
+@keyframes shimmer{to{background-position:-200% 0}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.45}}
+@keyframes flipIn{from{opacity:0;transform:rotateX(-12deg) translateY(10px)}to{opacity:1;transform:none}}
+
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{
+    animation-duration:.001ms !important;
+    animation-iteration-count:1 !important;
+    transition-duration:.001ms !important;
+    scroll-behavior:auto !important;
+  }
+}
