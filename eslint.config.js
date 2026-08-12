@@ -1,5 +1,6 @@
 import js from "@eslint/js";
 import globals from "globals";
+import react from "eslint-plugin-react";
 
 /**
  * Flat ESLint config for both workspaces.
@@ -45,13 +46,20 @@ export default [
   {
     // Client code runs in a browser and uses JSX.
     files: ["client/**/*.{js,jsx}"],
+    plugins: { react },
     languageOptions: {
       globals: { ...globals.browser, ...globals.es2023 },
+    },
+    rules: {
+      // Base no-unused-vars cannot see that `<Foo />` uses `Foo`, so without
+      // these every imported component reads as unused.
+      "react/jsx-uses-vars": "error",
+      "react/jsx-uses-react": "error",
     },
   },
   {
     // Tests may use console freely and reach for test globals.
-    files: ["**/tests/**/*.{js,jsx}", "**/e2e/**/*.js", "**/*.test.{js,jsx}"],
+    files: ["**/tests/**/*.{js,jsx}", "e2e/**/*.{js,mjs}", "**/*.test.{js,jsx}"],
     languageOptions: {
       globals: { ...globals.node, ...globals.browser },
     },
