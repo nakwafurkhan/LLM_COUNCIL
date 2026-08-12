@@ -22,8 +22,12 @@ function buildLimiter({ windowMs, max, name }) {
     handler: (_req, _res, next) => {
       next(new RateLimitError(`Rate limit exceeded for ${name}. Try again in a moment.`));
     },
-    // Health checks must never be throttled.
-    skip: (req) => req.path === "/api/health",
+    // Health checks must never be throttled: a load balancer polling health
+    // would eventually get a 429 and take the service out of rotation for
+    // being *popular*. Both spellings are checked because the limiter is
+    // mounted at /api, so req.path is "/health" inside the router while
+    // req.originalUrl still carries the full path.
+    skip: (req) => req.path === "/health" || req.originalUrl?.startsWith("/api/health"),
   });
 }
 
