@@ -34,6 +34,47 @@ async function toError(res) {
   return new MeshError(message, res.status, res.headers.get('x-request-id') || '');
 }
 
+/* TLS-interception codes. Node keeps its own CA list and ignores the macOS
+   Keychain, so a corporate proxy, VPN or antivirus doing HTTPS inspection
+   breaks Node while every browser on the machine keeps working. undici buries
+   the real reason in err.cause, and "fetch failed" tells you nothing. */
+const TLS_CODES = new Set([
+  'SELF_SIGNED_CERT_IN_CHAIN',
+  'DEPTH_ZERO_SELF_SIGNED_CERT',
+  'UNABLE_TO_VERIFY_LEAF_SIGNATURE',
+  'UNABLE_TO_GET_ISSUER_CERT_LOCALLY',
+  'CERT_HAS_EXPIRED'
+]);
+
+export function explainNetworkError(err) {
+  if (err instanceof MeshError) return err;
+
+  const code = err?.cause?.code || err?.code;
+
+  if (TLS_CODES.has(code)) {
+    return new MeshError(
+      `TLS trust failure (${code}): something on this network is intercepting HTTPS, and Node does not trust its certificate. ` +
+      'Node ignores the system keychain, which is why browsers still work. ' +
+      'Capture the chain with:  openssl s_client -showcerts -connect api.meshapi.ai:443 </dev/null | awk \'/BEGIN CERT/,/END CERT/\' > ca.pem  ' +
+      'then start the server with NODE_EXTRA_CA_CERTS=./ca.pem (it must be set before Node starts — .env is too late). ' +
+      'Be aware that whatever is intercepting can read your API key in transit.',
+      502
+    );
+  }
+
+  if (code === 'ENOTFOUND' || code === 'EAI_AGAIN') {
+    return new MeshError('DNS lookup failed for the gateway — no network, or a DNS/proxy problem.', 502);
+  }
+  if (code === 'ECONNREFUSED' || code === 'ECONNRESET' || code === 'UND_ERR_SOCKET') {
+    return new MeshError('Connection to the gateway was refused or reset — check a VPN or firewall.', 502);
+  }
+  if (err?.name === 'AbortError' || code === 'UND_ERR_HEADERS_TIMEOUT' || code === 'UND_ERR_CONNECT_TIMEOUT') {
+    return new MeshError('The gateway did not respond in time.', 504);
+  }
+
+  return new MeshError(err?.message || 'Upstream request failed', 502);
+}
+
 /** Caller-supplied signal, plus our own timeout, without clobbering either. */
 function withTimeout(signal) {
   const ctrl = new AbortController();
@@ -52,12 +93,20 @@ function withTimeout(signal) {
 export async function streamChat({ model, messages, signal, onDelta }) {
   const t = withTimeout(signal);
   try {
-    const res = await fetch(`${config.mesh.baseUrl}/v1/chat/completions`, {
-      method: 'POST',
-      headers: headers(),
-      signal: t.signal,
-      body: JSON.stringify({ model, messages, stream: true })
-    });
+    let res;
+    try {
+      res = await fetch(`${config.mesh.baseUrl}/v1/chat/completions`, {
+        method: 'POST',
+        headers: headers(),
+        signal: t.signal,
+        body: JSON.stringify({ model, messages, stream: true })
+      });
+    } catch (err) {
+      /* A caller-initiated stop must stay an AbortError so the UI says
+         "Stopped." rather than blaming the network. */
+      if (signal?.aborted) throw err;
+      throw explainNetworkError(err);
+    }
     if (!res.ok) throw await toError(res);
 
     const reader = res.body.getReader();
@@ -95,15 +144,20 @@ export async function chat({ model, messages, signal, json = false }) {
     const body = { model, messages };
     if (json) body.response_format = { type: 'json_object' };
 
-    let res = await fetch(`${config.mesh.baseUrl}/v1/chat/completions`, {
+    const post = () => fetch(`${config.mesh.baseUrl}/v1/chat/completions`, {
       method: 'POST', headers: headers(), signal: t.signal, body: JSON.stringify(body)
     });
 
-    if (!res.ok && json && (res.status === 400 || res.status === 422)) {
-      delete body.response_format;
-      res = await fetch(`${config.mesh.baseUrl}/v1/chat/completions`, {
-        method: 'POST', headers: headers(), signal: t.signal, body: JSON.stringify(body)
-      });
+    let res;
+    try {
+      res = await post();
+      if (!res.ok && json && (res.status === 400 || res.status === 422)) {
+        delete body.response_format;      // model ignores response_format
+        res = await post();
+      }
+    } catch (err) {
+      if (signal?.aborted) throw err;
+      throw explainNetworkError(err);
     }
     if (!res.ok) throw await toError(res);
 
@@ -123,7 +177,12 @@ export async function chat({ model, messages, signal, json = false }) {
 export async function listModels({ signal } = {}) {
   const t = withTimeout(signal);
   try {
-    const res = await fetch(`${config.mesh.baseUrl}/v1/models`, { headers: headers(), signal: t.signal });
+    let res;
+    try {
+      res = await fetch(`${config.mesh.baseUrl}/v1/models`, { headers: headers(), signal: t.signal });
+    } catch (err) {
+      throw explainNetworkError(err);
+    }
     if (!res.ok) throw await toError(res);
     const body = await res.json();
     const rows = Array.isArray(body) ? body
@@ -140,12 +199,17 @@ export async function listModels({ signal } = {}) {
 export async function webSearch({ query, maxResults = 12, signal }) {
   const t = withTimeout(signal);
   try {
-    const res = await fetch(`${config.mesh.baseUrl}/v1/web/search`, {
-      method: 'POST',
-      headers: headers(),
-      signal: t.signal,
-      body: JSON.stringify({ query, max_results: maxResults })
-    });
+    let res;
+    try {
+      res = await fetch(`${config.mesh.baseUrl}/v1/web/search`, {
+        method: 'POST',
+        headers: headers(),
+        signal: t.signal,
+        body: JSON.stringify({ query, max_results: maxResults })
+      });
+    } catch (err) {
+      throw explainNetworkError(err);
+    }
     if (!res.ok) throw await toError(res);
     const data = await res.json();
     return data.results || [];

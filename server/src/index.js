@@ -1,6 +1,7 @@
 import { config, assertConfig, dotEnvCount } from './config/env.js';
 import { connectDb, disconnectDb } from './config/db.js';
 import { createApp } from './app.js';
+import { listModels } from './services/meshClient.js';
 
 const problems = assertConfig();
 if (problems.length) {
@@ -24,8 +25,23 @@ const server = app.listen(config.port, () => {
   console.log(`  mesh:  ${config.mesh.baseUrl} — key ${config.mesh.apiKey.slice(0, 8)}…`);
   console.log(config.env === 'production'
     ? '  client: serving the production build from server/public'
-    : '  client: run `npm run dev:client` and open http://localhost:5173\n');
+    : '  client: run `npm run dev:client` and open http://localhost:5173');
+  preflight();
 });
+
+/**
+ * Ask the gateway one cheap question at boot. Finding out the key is wrong, or
+ * that a proxy is breaking TLS, is worth three seconds here rather than after
+ * you have typed a question and watched four cards fail.
+ */
+async function preflight() {
+  try {
+    const models = await listModels();
+    console.log(`  gateway: ok — ${models.length} models visible\n`);
+  } catch (err) {
+    console.warn(`\n  gateway check FAILED: ${err.message}\n`);
+  }
+}
 
 /* Let in-flight streams finish rather than cutting them mid-token. */
 async function shutdown(signal) {

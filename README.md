@@ -151,6 +151,56 @@ Vitest over the pure functions — the JSON extractor, section splitter, flashca
 parsers, and the review aggregator, including that self-votes are dropped and that a
 reviewer returning garbage does not poison the ranking.
 
+## Troubleshooting
+
+### `SELF_SIGNED_CERT_IN_CHAIN` / `fetch failed`
+
+Something on your network is intercepting HTTPS — a corporate or campus proxy, a VPN, or
+antivirus doing TLS inspection. **Node keeps its own CA list and ignores the macOS Keychain
+or Windows cert store**, so it fails while every browser on the same machine works.
+
+Identify what is intercepting:
+
+```bash
+openssl s_client -connect api.meshapi.ai:443 -showcerts </dev/null 2>/dev/null \
+  | grep -E "^ *[0-9]+ s:|^ *i:"
+```
+
+The last issuer is the interceptor. Then teach Node to trust it:
+
+```bash
+openssl s_client -showcerts -connect api.meshapi.ai:443 </dev/null 2>/dev/null \
+  | awk '/BEGIN CERT/,/END CERT/' > ca.pem
+
+NODE_EXTRA_CA_CERTS=./ca.pem npm run dev
+```
+
+`NODE_EXTRA_CA_CERTS` **cannot go in `.env`** — Node reads it at process startup, before any
+application code runs. It has to be on the command line or exported in your shell.
+
+The same file fixes the other tools:
+
+```bash
+git config --global http.sslCAInfo "$PWD/ca.pem"
+npm config set cafile "$PWD/ca.pem"
+```
+
+Worth understanding rather than routing around: anything able to substitute its own
+certificate can read the plaintext inside that connection, including your `rsk_` key on
+every request. If you don't recognise the interceptor, find out what it is before sending
+more traffic through it. If it's an optional VPN or a personal antivirus, switching it off
+is cleaner than trusting it.
+
+### Other failures
+
+| Message | Cause |
+|---|---|
+| `gateway check FAILED: 401` | Bad `MESH_API_KEY` |
+| `0 models visible` | Key has an allow-list that excludes everything |
+| Named slugs "not in the catalog" | Wrong model ids — fix them inline in Settings |
+| `Cannot start: MONGODB_URI is not set` | No `.env`, or it's not in the repo root |
+| `MongoDB connection failed` | Wrong password, or your IP is not on the Atlas allowlist |
+
 ## Known gaps
 
 - No integration test against a live Mongo; `mongodb-memory-server` would be the next add.
