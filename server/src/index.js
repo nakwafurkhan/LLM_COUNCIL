@@ -34,7 +34,7 @@ async function main() {
 
   await connectDb(config, { logger });
 
-  const llm = createLlmAdapter({ config, logger });
+  const llm = await createLlmAdapter({ config, logger });
   const app = buildApp({ config, llm, logger });
 
   const server = app.listen(config.PORT, () => {
