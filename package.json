@@ -1,17 +1,12 @@
 {
-  "name": "llm-council",
-  "version": "2.0.0",
-  "private": true,
+  "name": "vanilla-chatbot",
+  "version": "1.0.0",
   "type": "module",
-  "description": "Multi-model deliberation client for the Mesh API gateway. MERN.",
-  "workspaces": ["server", "client"],
-  "engines": { "node": ">=18" },
   "scripts": {
-    "dev": "node --watch server/src/index.js",
-    "dev:client": "npm run dev -w client",
-    "build": "npm run build -w client",
-    "start": "node server/src/index.js",
-    "test": "npm test -w server",
-    "migrate": "node server/scripts/migrate-json.js"
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.0.0",
+    "openai": "^4.0.0"
   }
 }
