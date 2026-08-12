@@ -30,13 +30,37 @@ export const SettingsSheet = memo(function SettingsSheet({ open, onClose, settin
   const [newSeat, setNewSeat] = useState('');
   const [check, setCheck] = useState(null);
 
+  /* Checks three things at once: can we reach the gateway, is Mongo up, and —
+     the one that actually costs you time — are the configured slugs real. */
   const runCheck = async () => {
     setCheck({ state: 'busy', message: 'Checking…' });
     try {
-      const [health, mesh] = await Promise.all([api.health(), api.meshCheck()]);
+      const configured = [
+        settings.quickModel, settings.chairModel,
+        settings.studyModel, settings.humanizeModel,
+        ...settings.seats
+      ].filter(Boolean);
+
+      const [health, mesh, validation] = await Promise.all([
+        api.health(),
+        api.meshCheck(),
+        api.validateModels(configured)
+      ]);
+
+      if (!mesh.models) {
+        setCheck({
+          state: 'bad',
+          message: 'Reached the gateway, but the catalog came back empty. Your key may have an allow-list that excludes everything.'
+        });
+        return;
+      }
+
+      const bad = [...new Set([...(validation.unknown || []), ...(validation.notChatCapable || [])])];
       setCheck({
-        state: 'ok',
-        message: `Connected. ${mesh.models} models visible, MongoDB ${health.db.state}.`
+        state: bad.length ? 'warn' : 'ok',
+        message: bad.length
+          ? `Connected — ${mesh.models} models, MongoDB ${health.db.state}. These slugs are not in the catalog: ${bad.join(', ')}`
+          : `Connected — ${mesh.models} models, MongoDB ${health.db.state}. All ${configured.length} configured models exist.`
       });
     } catch (err) {
       setCheck({ state: 'bad', message: err.message });

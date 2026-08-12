@@ -114,13 +114,24 @@ export async function chat({ model, messages, signal, json = false }) {
   }
 }
 
+/**
+ * Mesh returns a BARE ARRAY from /v1/models — not the OpenAI `{ data: [...] }`
+ * envelope. Reading `.data` silently produced "0 models visible" while the
+ * request itself was fine. Normalise every plausible shape so a future change
+ * upstream degrades into a wrong count rather than a wrong diagnosis.
+ */
 export async function listModels({ signal } = {}) {
   const t = withTimeout(signal);
   try {
     const res = await fetch(`${config.mesh.baseUrl}/v1/models`, { headers: headers(), signal: t.signal });
     if (!res.ok) throw await toError(res);
-    const data = await res.json();
-    return data.data || [];
+    const body = await res.json();
+    const rows = Array.isArray(body) ? body
+      : Array.isArray(body?.data) ? body.data
+      : Array.isArray(body?.items) ? body.items
+      : Array.isArray(body?.models) ? body.models
+      : [];
+    return rows;
   } finally {
     t.done();
   }

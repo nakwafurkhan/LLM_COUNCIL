@@ -20,7 +20,12 @@ healthRouter.get('/', (_req, res) => {
 healthRouter.get('/mesh', async (_req, res) => {
   try {
     const models = await listModels();
-    res.json({ ok: true, models: models.length });
+    res.json({
+      ok: true,
+      models: models.length,
+      /* A sample makes a shape mismatch self-evident instead of showing 0 */
+      sample: models.slice(0, 3).map(m => m?.id).filter(Boolean)
+    });
   } catch (err) {
     res.status(err.status || 502).json({ ok: false, message: err.message });
   }
