@@ -12,6 +12,7 @@
  * routes, 70% overall. CI fails below either.
  */
 import { defineConfig } from "vitest/config";
+import react from "@vitejs/plugin-react";
 
 export default defineConfig({
   test: {
@@ -39,6 +40,10 @@ export default defineConfig({
         },
       },
       {
+        // The React plugin supplies the automatic JSX runtime. Without it
+        // every component test fails with "React is not defined", since the
+        // source deliberately does not import React on every file.
+        plugins: [react()],
         test: {
           name: "client",
           root: "./client",
