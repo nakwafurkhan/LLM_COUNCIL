@@ -16,6 +16,8 @@ async function json(path, options = {}) {
 export const api = {
   health: () => json('/health'),
   meshCheck: () => json('/health/mesh'),
+  listModels: () => json('/models'),
+  validateModels: (models) => json('/models/validate', { method: 'POST', body: JSON.stringify({ models }) }),
 
   listRuns: ({ q, mode, limit = 60 } = {}) => {
     const params = new URLSearchParams({ limit: String(limit) });
