@@ -1,28 +1,20 @@
-# One-command local development: Mongo, the API, and the Vite dev server.
+# Local development in containers: the API and the Vite dev server.
 #
-#   cp .env.example .env    # fill in MESH_API_KEY
+#   cp .env.example .env    # fill in MESH_API_KEY and MONGODB_URI
 #   docker compose up
 #
-# The client is served by Vite on :5173 and proxies /api to the server on
-# :8787. MONGODB_URI is overridden here to point at the mongo service, so the
-# value in your .env (which is probably Atlas) is ignored inside compose.
+# The database is whatever MONGODB_URI in your .env points at — Atlas, a
+# managed host, or a mongod on your machine. This file does NOT override it,
+# because silently redirecting your configured database to a throwaway
+# container is a nasty surprise when you are wondering where your data went.
+#
+# If you want a disposable local Mongo instead, add the override file:
+#
+#   docker compose -f docker-compose.yml -f docker-compose.local-db.yml up
+#
+# Client on :5173 (open this one), API on :8787.
 
 services:
-  mongo:
-    image: mongo:7
-    restart: unless-stopped
-    ports:
-      - "27017:27017"
-    volumes:
-      - mongo-data:/data/db
-    healthcheck:
-      # The server must not start against a Mongo that is still initialising.
-      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping')"]
-      interval: 5s
-      timeout: 5s
-      retries: 12
-      start_period: 10s
-
   server:
     image: node:22-alpine
     working_dir: /app
@@ -33,8 +25,8 @@ services:
     environment:
       NODE_ENV: development
       PORT: "8787"
-      MONGODB_URI: mongodb://mongo:27017
-      MONGODB_DB: llm_council
+      # Only settings that must differ *inside* a container are set here.
+      # Everything else, MONGODB_URI included, comes from .env above.
       CORS_ORIGINS: http://localhost:5173
       # Code+PR needs a repo to work against. Mount one below and point this
       # at its path inside the container.
@@ -44,12 +36,10 @@ services:
     volumes:
       - .:/app
       # Keep container node_modules separate from the host's: native builds
-      # differ between an alpine container and a macOS or Windows host.
+      # differ between an alpine container and a macOS or Windows host, and
+      # sharing them produces confusing "invalid ELF header" failures.
       - server-node-modules:/app/node_modules
       # - /absolute/path/to/your/repo:/repo
-    depends_on:
-      mongo:
-        condition: service_healthy
 
   client:
     image: node:22-alpine
@@ -68,6 +58,5 @@ services:
       - server
 
 volumes:
-  mongo-data:
   server-node-modules:
   client-node-modules:
