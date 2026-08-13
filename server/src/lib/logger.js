@@ -5,6 +5,8 @@
  * cannot reach stdout even if a caller logs a whole config or an upstream
  * error body verbatim. That guarantee is asserted in tests/unit/redact.test.js.
  */
+import { createRequire } from "node:module";
+
 import pino from "pino";
 import { redact } from "./redact.js";
 
@@ -15,6 +17,22 @@ import { redact } from "./redact.js";
  * @param {import("stream").Writable} [options.destination] Test seam.
  */
 export function createLogger({ level = "info", pretty = false, destination } = {}) {
+  // Pretty output is a developer nicety. If pino-pretty is missing or fails to
+  // load, fall back to JSON rather than refusing to boot — dying because the
+  // logs would have been less readable is a terrible trade.
+  let prettyTransport = null;
+  if (pretty) {
+    try {
+      createRequire(import.meta.url).resolve("pino-pretty");
+      prettyTransport = {
+        target: "pino-pretty",
+        options: { colorize: true, translateTime: "HH:MM:ss.l", ignore: "pid,hostname" },
+      };
+    } catch {
+      // Left null: JSON logs, and the process still starts.
+    }
+  }
+
   return pino(
     {
       level,
@@ -32,14 +50,7 @@ export function createLogger({ level = "info", pretty = false, destination } = {
           return method.apply(this, scrubbed);
         },
       },
-      ...(pretty
-        ? {
-            transport: {
-              target: "pino-pretty",
-              options: { colorize: true, translateTime: "HH:MM:ss.l", ignore: "pid,hostname" },
-            },
-          }
-        : {}),
+      ...(prettyTransport ? { transport: prettyTransport } : {}),
     },
     destination,
   );
