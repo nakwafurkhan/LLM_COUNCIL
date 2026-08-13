@@ -86,6 +86,7 @@ export const envSchema = z
     COUNCIL_MODELS: csv("openai/gpt-4o,openai/gpt-4o-mini,anthropic/claude-3-5-sonnet"),
     CHAIRMAN_MODEL: z.string().default("openai/gpt-4o"),
     CODE_MODEL: z.string().default("openai/gpt-4o"),
+    HUMANIZER_MODEL: z.string().default("openai/gpt-4o"),
     /**
      * Extra ids a client may request beyond the ones named above. The
      * effective allowlist is this plus every configured model — a raw
@@ -97,6 +98,7 @@ export const envSchema = z
     CHAT_MAX_TOKENS: positiveInt.default(4_096),
     QUICK_MAX_TOKENS: positiveInt.default(1_024),
     QUICK_TIMEOUT_MS: positiveInt.default(30_000),
+    HUMANIZER_MAX_TOKENS: positiveInt.default(8_192),
     CHAT_CONTEXT_WINDOW: positiveInt.default(20),
     CHAT_SUMMARY_TRIGGER: positiveInt.default(30),
 
@@ -144,6 +146,7 @@ export const envSchema = z
         cfg.QUICK_MODEL,
         cfg.CHAIRMAN_MODEL,
         cfg.CODE_MODEL,
+        cfg.HUMANIZER_MODEL,
         ...cfg.COUNCIL_MODELS,
         ...cfg.EXTRA_ALLOWED_MODELS,
       ]),
