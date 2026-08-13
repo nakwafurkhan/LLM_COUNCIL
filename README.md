@@ -1,13 +1,14 @@
 # LLM Council
 
-Four ways to ask a model something, with the cost and failure modes visible rather than hidden.
+Five ways to put a model to work, with the cost and failure modes visible rather than hidden.
 
-| Mode        | What it does                                                                                                                                      | Latency                                           | Cost per turn                                           |
-| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------- | ------------------------------------------------------- |
-| **Chat**    | Full-depth conversation with streaming and persistent history                                                                                     | Seconds                                           | Highest — frontier model, large context                 |
-| **Quick**   | The same code path with a cheap model, tight token cap and terse prompt                                                                           | Sub-second to seconds                             | ~15× cheaper than Chat                                  |
-| **Council** | Asks several models the same question, then a chairman synthesises and names the disagreements                                                    | Slowest — bounded by the slowest surviving member | Sum of all members plus the chairman                    |
-| **Code+PR** | Plans a multi-file change, writes it in an isolated worktree, runs your lint and tests, shows you the diff, and opens a PR only after you approve | Minutes                                           | One planning call plus one per file, plus repair rounds |
+| Mode          | What it does                                                                                                                                      | Latency                                           | Cost per turn                                           |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------- | ------------------------------------------------------- |
+| **Chat**      | Full-depth conversation with streaming and persistent history                                                                                     | Seconds                                           | Highest — frontier model, large context                 |
+| **Quick**     | The same code path with a cheap model, tight token cap and terse prompt                                                                           | Sub-second to seconds                             | ~15× cheaper than Chat                                  |
+| **Council**   | Asks several models the same question, then a chairman synthesises and names the disagreements                                                    | Slowest — bounded by the slowest surviving member | Sum of all members plus the chairman                    |
+| **Code+PR**   | Plans a multi-file change, writes it in an isolated worktree, runs your lint and tests, shows you the diff, and opens a PR only after you approve | Minutes                                           | One planning call plus one per file, plus repair rounds |
+| **Humanizer** | Strips AI-writing tells from text in three passes: rewrite, self-audit, revise. All three are shown                                               | Slow on long text                                 | Three passes over your full text                        |
 
 ---
 
@@ -46,7 +47,7 @@ Requires Node 20 or 22.
 ```
                     ┌──────────────────────────────────────┐
   browser  ───────► │ client/  React 18 + Vite             │
-                    │  routes: /chat /quick /council /pr   │
+                    │  /chat /quick /council /pr /humanize │
                     └───────────────┬──────────────────────┘
                                     │  JSON + SSE over /api
                     ┌───────────────▼──────────────────────┐
@@ -54,26 +55,27 @@ Requires Node 20 or 22.
                     │  requestId → helmet → cors → rate    │
                     │  limit → validate(zod) → routes      │
                     │  → one terminal error handler        │
-                    └───┬───────────┬──────────┬───────────┘
-                        │           │          │
-              ┌─────────▼──┐  ┌─────▼─────┐  ┌─▼──────────────┐
-              │conversation│  │  council  │  │    codePR      │
-              │  service   │  │  service  │  │  planner →     │
-              │ chat+quick │  │ fan-out   │  │  context →     │
-              └─────┬──────┘  └─────┬─────┘  │  generate →    │
-                    │               │        │  verify →      │
-                    │               │        │  diff →        │
-                    │               │        │  approve→push  │
-                    │               │        └─┬──────────────┘
-                    └───────┬───────┴──────────┘
-                            │
-                 ┌──────────▼───────────┐        ┌──────────────┐
+                    └──┬────────┬─────────┬─────────┬────────┘
+                       │        │         │         │
+       ┌───────────────▼┐ ┌─────▼─────┐ ┌─▼────────┐ ┌▼──────────┐
+       │  conversation  │ │  council  │ │  codePR  │ │ humanizer │
+       │    service     │ │  service  │ │ planner →│ │  draft →  │
+       │   chat+quick   │ │  fan-out  │ │ context →│ │  audit →  │
+       └───────────────┬┘ └─────┬─────┘ │ generate→│ │  revise   │
+                       │        │       │ verify → │ │ +detector │
+                       │        │       │ diff →   │ └┬──────────┘
+                       │        │       │ approve  │  │
+                       │        │       └─┬────────┘  │
+                       └────────┴─────────┴───────────┘
+                                    │
+                 ┌──────────────────▼───┐        ┌──────────────┐
                  │ services/llm adapter │        │   MongoDB    │
                  │ the ONLY importer of │        │ Conversation │
                  │ the openai SDK       │        │ Message      │
                  └──────────┬───────────┘        │ CouncilRun   │
                             │                    │ PrJob        │
-                     MeshAPI router              └──────────────┘
+                     MeshAPI router              │ HumanizerRun │
+                                                 └──────────────┘
 ```
 
 Four rules hold the thing together:
@@ -192,6 +194,47 @@ queued → planning → generating → verifying → awaiting_approval
 
 At `awaiting_approval` the job carries a per-file unified diff. `POST /api/pr/:id/approve` commits, pushes and opens the PR; `POST /api/pr/:id/reject` discards the branch and worktree. Nothing is pushed before approval.
 
+### Humanizer
+
+```http
+POST /api/humanize
+{ "text": "It's not just a tool—it's a testament to innovation…",
+  "tone": "neutral",
+  "voiceSample": "optional sample of your own writing",
+  "stream": true }
+```
+
+Three passes, streamed in order: `start` (with the pattern scan of your input),
+`draft-delta`/`draft`, `audit-delta`/`audit`, `final-delta`, `complete`, `done`.
+
+The `audit` event is the interesting one. It carries the model's own answer to
+"what makes this obviously AI generated?" about the draft it just wrote, and
+those notes are fed into the third pass:
+
+```json
+{ "notes": ["The opening still reads like a summary", "Every sentence is the same length"] }
+```
+
+The completed run reports what changed:
+
+```json
+{ "before": { "total": 7, "per1000Words": 152, "findings": [ { "id": "em-dash", "count": 2, "severity": "medium", "examples": ["—"] } ] },
+  "after":  { "total": 0, "per1000Words": 0, "findings": [] },
+  "diff":   { "delta": 7, "removed": [...], "remaining": [], "introduced": [] } }
+```
+
+`introduced` is not decoration: a rewrite can trade one tell for another, and
+the UI surfaces it when that happens.
+
+**What the pattern count does and does not mean.** It covers the mechanically
+detectable subset — em dashes, curly quotes, emoji, bolded list headers, AI
+vocabulary density, rule of three, filler, copula avoidance, signposting and a
+few more. It cannot see inflated significance, superficial analysis, or the
+absence of a point of view. Text can score zero and still read like a press
+release. The number is a floor, not a verdict, and the UI says so.
+
+Also: `GET /api/humanize`, `GET /api/humanize/:id`.
+
 ### Health
 
 `GET /api/health` reports process uptime, Mongo reachability, and which optional subsystems are configured — as booleans, never values.
@@ -267,4 +310,6 @@ Still true after this work:
 - **The chairman is one model's opinion.** It can smooth over a disagreement it should have surfaced. The structured `disagreements[]` makes that failure visible, not impossible.
 - **Council cost scales linearly with members.** There is no early exit when the first two members already agree.
 - **Repair rounds regenerate whole files.** A large file with a one-line lint error is rewritten entirely, which is wasteful and can introduce unrelated churn.
+- **The humanizer's pattern detector covers about a third of the spec.** The countable patterns are counted; judgement calls are left to the model. A clean score means "no mechanical tells", not "this is good writing".
+- **The humanizer costs three passes.** Every run sends your full text upstream three times. On a long document that adds up quickly.
 - **No streaming for Code+PR generation.** Progress is reported per stage, not per token, so a long generation looks idle.
