@@ -122,6 +122,43 @@ export const councilHistoryQuerySchema = z.object({
 });
 
 /* ------------------------------------------------------------------ */
+/* Humanizer                                                           */
+/* ------------------------------------------------------------------ */
+
+export const TONES = ["neutral", "casual", "professional", "technical"];
+export const toneSchema = z.enum(TONES);
+
+/** Upper bound on a single humanizer submission. */
+export const MAX_HUMANIZE_CHARS = 50_000;
+
+export const humanizeRequestSchema = z.object({
+  text: z
+    .string()
+    .trim()
+    .min(1, "must not be empty")
+    .max(MAX_HUMANIZE_CHARS, `must be at most ${MAX_HUMANIZE_CHARS} characters`),
+  /**
+   * A sample of the user's own writing. When present the rewrite matches its
+   * rhythm and vocabulary instead of a generic "natural" voice, which is the
+   * difference between text that sounds human and text that sounds like the
+   * user.
+   */
+  voiceSample: z.string().trim().max(MAX_HUMANIZE_CHARS).optional(),
+  tone: toneSchema.default("neutral"),
+  model: modelIdSchema.optional(),
+  stream: z.boolean().default(true),
+});
+
+/** What the audit pass is asked to return. */
+export const auditOutputSchema = z.object({
+  notes: z.array(z.string().min(1)).default([]),
+});
+
+export const humanizeHistoryQuerySchema = z.object({
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+});
+
+/* ------------------------------------------------------------------ */
 /* Code + PR                                                           */
 /* ------------------------------------------------------------------ */
 
