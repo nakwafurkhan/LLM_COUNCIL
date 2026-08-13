@@ -7,7 +7,10 @@
  * failure that names the variable at fault.
  */
 import { describe, it, expect } from "vitest";
-import { loadConfig } from "../../src/config/env.js";
+import path from "node:path";
+import fs from "node:fs";
+
+import { loadConfig, envFileCandidates } from "../../src/config/env.js";
 
 /** Minimum viable environment. */
 const base = {
@@ -147,5 +150,37 @@ describe("derived values", () => {
     expect(loadConfig({ ...base, NODE_ENV: "production" }).isProduction).toBe(true);
     expect(loadConfig({ ...base, NODE_ENV: "test" }).isTest).toBe(true);
     expect(loadConfig(base).isProduction).toBe(false);
+  });
+});
+
+describe("envFileCandidates", () => {
+  // Regression guard. `npm run dev --workspace server` runs the server with
+  // cwd set to server/, so a cwd-relative dotenv lookup misses the repo-root
+  // .env entirely and the server dies insisting required variables are absent
+  // when they are sitting in the file the docs told you to create.
+  const serverSrc = path.resolve(import.meta.dirname, "../../src");
+
+  it("looks in the repo root first", () => {
+    const [first] = envFileCandidates(serverSrc);
+    const repoRoot = path.resolve(serverSrc, "../..");
+    expect(first).toBe(path.join(repoRoot, ".env"));
+  });
+
+  it("falls back to a per-package .env", () => {
+    const [, second] = envFileCandidates(serverSrc);
+    expect(second).toBe(path.join(path.resolve(serverSrc, ".."), ".env"));
+  });
+
+  it("returns absolute paths, so cwd cannot change the answer", () => {
+    for (const candidate of envFileCandidates(serverSrc)) {
+      expect(path.isAbsolute(candidate)).toBe(true);
+    }
+  });
+
+  it("points at the directory that actually holds .env.example", () => {
+    // The strongest form of the check: the root candidate must live beside the
+    // template users are told to copy. If the layout moves, this fails.
+    const [rootCandidate] = envFileCandidates(serverSrc);
+    expect(fs.existsSync(path.join(path.dirname(rootCandidate), ".env.example"))).toBe(true);
   });
 });
