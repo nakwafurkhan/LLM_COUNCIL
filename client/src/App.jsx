@@ -5,6 +5,7 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-route
 import ModeTabs from "./components/ModeTabs.jsx";
 import ChatRoute from "./routes/ChatRoute.jsx";
 import CouncilRoute from "./routes/CouncilRoute.jsx";
+import HumanizerRoute from "./routes/HumanizerRoute.jsx";
 import PrRoute from "./routes/PrRoute.jsx";
 
 function FocusManager() {
@@ -40,6 +41,7 @@ export default function App() {
           <Route path="/chat" element={<ChatRoute mode="chat" />} />
           <Route path="/quick" element={<ChatRoute mode="quick" />} />
           <Route path="/council" element={<CouncilRoute />} />
+          <Route path="/humanize" element={<HumanizerRoute />} />
           <Route path="/pr" element={<PrRoute />} />
         </Routes>
       </Layout>
