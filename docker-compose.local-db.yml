@@ -1,0 +1,41 @@
+# Optional override: run a throwaway MongoDB in a container instead of using
+# the MONGODB_URI from your .env.
+#
+#   docker compose -f docker-compose.yml -f docker-compose.local-db.yml up
+#
+# Use this when you want a disposable database, or have no Atlas cluster. It
+# deliberately lives in a separate file so the default `docker compose up`
+# never hijacks a real database you configured.
+#
+# Data persists in the `mongo-data` volume. To wipe it:
+#   docker compose -f docker-compose.yml -f docker-compose.local-db.yml down -v
+
+services:
+  mongo:
+    image: mongo:7
+    restart: unless-stopped
+    ports:
+      # Exposed so you can point Compass or mongosh at it from the host.
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    healthcheck:
+      # The server must not start against a Mongo that is still initialising,
+      # or the first request fails for a reason that looks like a bug.
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping')"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+
+  server:
+    environment:
+      # Overrides whatever .env said, on purpose: that is what this file is for.
+      MONGODB_URI: mongodb://mongo:27017
+      MONGODB_DB: llm_council
+    depends_on:
+      mongo:
+        condition: service_healthy
+
+volumes:
+  mongo-data:
