@@ -5,6 +5,7 @@ const TABS = [
   { path: "/chat", label: "Chat" },
   { path: "/quick", label: "Quick" },
   { path: "/council", label: "Council" },
+  { path: "/humanize", label: "Humanizer" },
   { path: "/pr", label: "Code + PR" },
 ];
 
