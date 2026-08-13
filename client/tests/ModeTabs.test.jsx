@@ -13,11 +13,12 @@ function renderWithRouter(initialPath = "/chat") {
 }
 
 describe("ModeTabs", () => {
-  it("renders all four tabs", () => {
+  it("renders all tabs", () => {
     renderWithRouter();
     expect(screen.getByText("Chat")).toBeInTheDocument();
     expect(screen.getByText("Quick")).toBeInTheDocument();
     expect(screen.getByText("Council")).toBeInTheDocument();
+    expect(screen.getByText("Humanizer")).toBeInTheDocument();
     expect(screen.getByText("Code + PR")).toBeInTheDocument();
   });
 
@@ -33,7 +34,7 @@ describe("ModeTabs", () => {
   it("tabs have role=tab", () => {
     renderWithRouter();
     const tabs = screen.getAllByRole("tab");
-    expect(tabs).toHaveLength(4);
+    expect(tabs).toHaveLength(5);
   });
 
   it("tablist has role=tablist", () => {
@@ -54,7 +55,7 @@ describe("ModeTabs", () => {
     const tabs = screen.getAllByRole("tab");
     tabs[0].focus();
     await userEvent.keyboard("{ArrowLeft}");
-    expect(document.activeElement).toBe(tabs[3]);
+    expect(document.activeElement).toBe(tabs[4]);
   });
 
   it("End key moves focus to last tab", async () => {
@@ -62,7 +63,7 @@ describe("ModeTabs", () => {
     const tabs = screen.getAllByRole("tab");
     tabs[0].focus();
     await userEvent.keyboard("{End}");
-    expect(document.activeElement).toBe(tabs[3]);
+    expect(document.activeElement).toBe(tabs[4]);
   });
 
   it("Home key moves focus to first tab", async () => {
