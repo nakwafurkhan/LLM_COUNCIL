@@ -4,14 +4,34 @@
  * Order matters: validate config first so a misconfigured deploy dies at boot
  * with a message naming the variable, rather than 500-ing on first request.
  */
-import "dotenv/config";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 
-import { loadConfig } from "./config/env.js";
+import dotenv from "dotenv";
+
+import { loadConfig, envFileCandidates } from "./config/env.js";
 import { createLogger } from "./lib/logger.js";
 import { registerSecretsFromConfig } from "./lib/redact.js";
 import { connectDb, disconnectDb } from "./db/connect.js";
 import { buildApp } from "./app.js";
 import { createLlmAdapter } from "./services/llm/index.js";
+
+/**
+ * Load .env from the repo root, not from the current working directory.
+ *
+ * `npm run dev --workspace server` starts this process with cwd set to
+ * `server/`, so a bare `dotenv/config` import looked for `server/.env` and
+ * silently found nothing — the root `.env` that .env.example tells you to
+ * create was never read, and the server died claiming required variables were
+ * missing when they were sitting right there. Resolving from this file's own
+ * location makes the load independent of where the process was started.
+ *
+ * dotenv does not overwrite variables that are already set, so the root file
+ * wins over a per-package one, and a real environment variable beats both.
+ */
+for (const candidate of envFileCandidates(path.dirname(fileURLToPath(import.meta.url)))) {
+  dotenv.config({ path: candidate });
+}
 
 async function main() {
   let config;
