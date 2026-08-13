@@ -21,12 +21,21 @@ cp .env.example .env      # fill in MESH_API_KEY and MONGODB_URI
 npm run dev               # API on :8787, client on :5173
 ```
 
-Or with Docker, which brings its own Mongo:
+Or with Docker. The default compose file uses whatever `MONGODB_URI` is in your
+`.env` — Atlas, a managed host, anything — rather than hijacking it:
 
 ```bash
-cp .env.example .env      # MESH_API_KEY only; MONGODB_URI is overridden
+cp .env.example .env      # fill in MESH_API_KEY and MONGODB_URI
 docker compose up
 ```
+
+If you would rather have a disposable Mongo in a container, add the override:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.local-db.yml up
+```
+
+Either way, open **http://localhost:5173**.
 
 Requires Node 20 or 22.
 
