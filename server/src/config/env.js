@@ -9,7 +9,28 @@
  * On bad config this throws with the exact variable names at fault, so the
  * failure names the fix rather than surfacing as a null-deref three layers in.
  */
+import path from "node:path";
+
 import { z } from "zod";
+
+/**
+ * Where to look for a .env file, in priority order.
+ *
+ * Resolved from a module's own directory rather than process.cwd(), because
+ * `npm run dev --workspace server` starts the process with cwd set to
+ * `server/` — so a cwd-relative lookup silently misses the repo-root .env that
+ * .env.example tells people to create. That exact mismatch shipped once; this
+ * function exists so it stays tested.
+ *
+ * @param {string} fromDir Directory of the calling module (server/src).
+ * @returns {string[]} Absolute paths, highest priority first.
+ */
+export function envFileCandidates(fromDir) {
+  return [
+    path.resolve(fromDir, "../../.env"), // <repo>/.env — the documented location
+    path.resolve(fromDir, "../.env"), // <repo>/server/.env — per-package override
+  ];
+}
 
 /** Comma-separated string -> trimmed, non-empty array. */
 const csv = (fallback) =>
