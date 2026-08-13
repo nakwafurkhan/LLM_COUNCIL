@@ -25,6 +25,7 @@ import { healthRouter } from "./routes/health.js";
 import { conversationsRouter } from "./routes/conversations.js";
 import { councilRouter } from "./routes/council.js";
 import { prRouter } from "./routes/pr.js";
+import { humanizeRouter } from "./routes/humanize.js";
 import { logger as defaultLogger } from "./lib/logger.js";
 
 /**
@@ -84,15 +85,12 @@ export function buildApp({ config, llm, logger = defaultLogger, codePr }) {
 
   app.use("/api", councilRouter(ctx));
   app.use("/api", prRouter(ctx));
+  app.use("/api", humanizeRouter(ctx));
 
   // Serve the built client when it exists (npm run build writes it here).
   // express.static resolves and contains paths itself — the old server's
   // hand-rolled path.join was what allowed traversal out of public/.
-  const clientDir = path.resolve(
-    path.dirname(fileURLToPath(import.meta.url)),
-    "..",
-    "public",
-  );
+  const clientDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "public");
   if (fs.existsSync(path.join(clientDir, "index.html"))) {
     app.use(express.static(clientDir, { index: false, maxAge: "1h" }));
     // SPA fallback for client-side routes, but never for /api: an unknown
