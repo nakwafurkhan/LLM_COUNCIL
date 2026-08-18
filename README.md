@@ -173,6 +173,18 @@ Coverage is concentrated where mistakes are expensive:
 | `test_api.py` | HTTP surface, persistence, Code+PR dry-run safety |
 | `test_storage.py` | persistence and traversal-safe conversation ids |
 
+### Frontend
+
+```bash
+cd frontend
+npm run build     # production bundle
+npm run smoke     # server-renders the real App to catch runtime errors
+```
+
+`npm run smoke` is a deliberately tiny render check — no vitest, no jsdom, about
+a second to run. It proves the app renders and every mode mounts; it does not
+prove interactions work.
+
 ---
 
 ## Layout
