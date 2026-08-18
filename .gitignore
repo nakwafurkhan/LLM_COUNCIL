@@ -1,16 +1,17 @@
-node_modules/
-package-lock.json
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+*.egg-info/
 
-# built client, emitted by `npm run build`
-server/public/
-
+# Secrets
 .env
-.env.*
-!.env.example
 
-.DS_Store
-*.log
-coverage/
-test-results/
-playwright-report/
-.playwright/
+# Runtime data (conversation transcripts)
+data/
+
+# Frontend
+node_modules/
+dist/

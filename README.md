@@ -1,261 +1,225 @@
 # LLM Council
 
-Four ways to ask a model something, with the cost and failure modes visible rather than hidden.
+Five ways to ask a model something, all through one [Mesh API](https://meshapi.ai) key.
+No database, no Docker, two commands to run.
 
-| Mode        | What it does                                                                                                                                      | Latency                                           | Cost per turn                                           |
-| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------- | ------------------------------------------------------- |
-| **Chat**    | Full-depth conversation with streaming and persistent history                                                                                     | Seconds                                           | Highest — frontier model, large context                 |
-| **Quick**   | The same code path with a cheap model, tight token cap and terse prompt                                                                           | Sub-second to seconds                             | ~15× cheaper than Chat                                  |
-| **Council** | Asks several models the same question, then a chairman synthesises and names the disagreements                                                    | Slowest — bounded by the slowest surviving member | Sum of all members plus the chairman                    |
-| **Code+PR** | Plans a multi-file change, writes it in an isolated worktree, runs your lint and tests, shows you the diff, and opens a PR only after you approve | Minutes                                           | One planning call plus one per file, plus repair rounds |
+| Mode | What it does | Cost |
+|---|---|---|
+| **Chat** | A straight conversation with one model, streamed token by token. | one call |
+| **Quick** | Same code path as Chat, but a cheap model and a hard length cap. For when you want an answer, not an essay. | one cheap call |
+| **Council** | Several models answer independently, rank each other's answers **blind**, then a chairman synthesises the final answer. | ~(2 × members) + 1 |
+| **Code + PR** | The council drafts a code change, peer-reviews the implementations, and opens a real pull request. | ~(2 × members) + 1 |
+| **Humanize** | Rewrites stiff, AI-sounding text so it reads like a person wrote it. Tone and length controls, before/after view. | one call |
+
+Every mode has its own model picker, fed by the live Mesh catalogue.
 
 ---
 
-## Setup
+## Quickstart
 
 ```bash
 git clone https://github.com/nakwafurkhan/LLM_COUNCIL.git
 cd LLM_COUNCIL
-npm install
-cp .env.example .env      # fill in MESH_API_KEY and MONGODB_URI
-npm run dev               # API on :8787, client on :5173
+
+cp .env.example .env          # then open .env and paste your MESH_API_KEY
+
+python -m venv .venv          # recommended — see the note below
+source .venv/bin/activate     # Windows: .venv\Scripts\activate
+pip install -r requirements.txt
+
+cd frontend && npm install && cd ..
+
+./start.sh
 ```
 
-Or with Docker, which brings its own Mongo:
+Open **http://localhost:5173**.
+
+> **Use a venv, or make sure `pip` and `python` are the same interpreter.**
+> The most common startup failure is `pip` installing into one Python (say
+> Anaconda) while `python3` resolves to another (say Xcode's), which surfaces as
+> `No module named uvicorn` right after a successful install. Check with
+> `which python pip` — both paths should share a prefix. `start.sh` verifies this
+> for you and tells you the exact command to fix it.
+
+### Running the two halves separately
 
 ```bash
-cp .env.example .env      # MESH_API_KEY only; MONGODB_URI is overridden
-docker compose up
+python -m uvicorn backend.main:app --port 8000    # terminal 1
+cd frontend && npm run dev                         # terminal 2
 ```
 
-Requires Node 20 or 22.
+Health check: `curl localhost:8000/api/health` → `mesh_key_configured` should be `true`.
 
 ---
 
-## Architecture
+## Try it without spending anything
 
-```
-                    ┌──────────────────────────────────────┐
-  browser  ───────► │ client/  React 18 + Vite             │
-                    │  routes: /chat /quick /council /pr   │
-                    └───────────────┬──────────────────────┘
-                                    │  JSON + SSE over /api
-                    ┌───────────────▼──────────────────────┐
-                    │ server/src/app.js  buildApp()        │
-                    │  requestId → helmet → cors → rate    │
-                    │  limit → validate(zod) → routes      │
-                    │  → one terminal error handler        │
-                    └───┬───────────┬──────────┬───────────┘
-                        │           │          │
-              ┌─────────▼──┐  ┌─────▼─────┐  ┌─▼──────────────┐
-              │conversation│  │  council  │  │    codePR      │
-              │  service   │  │  service  │  │  planner →     │
-              │ chat+quick │  │ fan-out   │  │  context →     │
-              └─────┬──────┘  └─────┬─────┘  │  generate →    │
-                    │               │        │  verify →      │
-                    │               │        │  diff →        │
-                    │               │        │  approve→push  │
-                    │               │        └─┬──────────────┘
-                    └───────┬───────┴──────────┘
-                            │
-                 ┌──────────▼───────────┐        ┌──────────────┐
-                 │ services/llm adapter │        │   MongoDB    │
-                 │ the ONLY importer of │        │ Conversation │
-                 │ the openai SDK       │        │ Message      │
-                 └──────────┬───────────┘        │ CouncilRun   │
-                            │                    │ PrJob        │
-                     MeshAPI router              └──────────────┘
-```
-
-Four rules hold the thing together:
-
-1. **`app.js` exports a factory and never calls `listen()`.** `index.js` is the only file that opens a port. This is what lets the integration suite drive a real Express app through supertest with no sockets.
-2. **One LLM adapter.** Nothing outside `services/llm/` imports the `openai` SDK, so every test swaps the entire provider for a scriptable fake.
-3. **Nothing reads `process.env` outside `config/env.js`.** That rule is exactly what would have prevented the `MESHAPI_KEY` / `MESH_API_KEY` drift described below.
-4. **One error taxonomy, one terminal handler.** No route calls `res.status(500)`. Stack traces never cross the wire in production.
-
----
-
-## API reference
-
-All routes are under `/api`. Every error response has the same shape:
-
-```json
-{
-  "error": {
-    "code": "VALIDATION_ERROR",
-    "message": "Invalid request body",
-    "requestId": "3f9c…",
-    "fields": [{ "path": "prompt", "message": "must not be empty" }]
-  }
-}
-```
-
-### Chat and Quick
-
-The mode lives on the conversation; both use the same endpoints.
-
-```http
-POST /api/conversations
-{ "mode": "chat" }                    → 201 { id, mode, title, model, … }
-
-POST /api/conversations/:id/messages
-{ "content": "Why is the sky blue?", "stream": true }
-```
-
-With `stream: true` (the default) the response is SSE:
-
-```
-event: delta
-data: {"text":"Because "}
-
-event: message
-data: {"messageId":"…","content":"Because …","usage":{"promptTokens":11,"completionTokens":84,"costUsd":0.000868},"latencyMs":1420}
-
-event: done
-data: {"ok":true}
-```
-
-With `stream: false` you get `201 { message, conversation }` instead — useful for scripts that should not have to speak SSE.
-
-Also: `GET /api/conversations`, `GET /api/conversations/:id/messages`, `POST /api/conversations/:id/regenerate`, `POST /api/conversations/:id/archive`, `DELETE /api/conversations/:id`.
-
-### Council
-
-```http
-POST /api/council
-{ "prompt": "Should we use Postgres or Mongo here?", "stream": true }
-```
-
-SSE events arrive in this order: `start`, one `member` per model **as it lands**, `chairman-start`, many `chairman-delta`, `complete`, `done`. The completed run:
-
-```json
-{
-  "id": "…",
-  "memberAnswers": [
-    {
-      "model": "openai/gpt-4o",
-      "status": "fulfilled",
-      "content": "…",
-      "latencyMs": 3200,
-      "costUsd": 0.0041
-    },
-    {
-      "model": "anthropic/claude-3-5-sonnet",
-      "status": "timeout",
-      "error": "…",
-      "latencyMs": 60000
-    }
-  ],
-  "finalAnswer": "…",
-  "disagreements": [
-    {
-      "claim": "whether write throughput matters here",
-      "positions": [{ "model": "openai/gpt-4o", "stance": "it does" }]
-    }
-  ],
-  "confidence": "medium",
-  "partial": true,
-  "partialReason": "1 of 3 members did not answer: anthropic/claude-3-5-sonnet (timeout)",
-  "totals": { "costUsd": 0.0068, "latencyMs": 61200 },
-  "cached": false
-}
-```
-
-Also: `GET /api/council`, `GET /api/council/:id`.
-
-### Code+PR
-
-```http
-POST /api/pr
-Idempotency-Key: 8f14e45f
-{ "task": "Add a /health endpoint and cover it with a test",
-  "targetPaths": ["src/server.js"] }        → 202 { jobId, status: "queued" }
-```
-
-Then poll `GET /api/pr/:id` or stream `GET /api/pr/:id/stream`. The job walks:
-
-```
-queued → planning → generating → verifying → awaiting_approval
-                                    ↓ (lint/tests fail)
-                              repair ×N → failed
-```
-
-At `awaiting_approval` the job carries a per-file unified diff. `POST /api/pr/:id/approve` commits, pushes and opens the PR; `POST /api/pr/:id/reject` discards the branch and worktree. Nothing is pushed before approval.
-
-### Health
-
-`GET /api/health` reports process uptime, Mongo reachability, and which optional subsystems are configured — as booleans, never values.
-
----
-
-## Testing
+`fake_mesh.py` is a local stand-in that serves the OpenAI-compatible routes the
+app uses — including real SSE streaming — so you can exercise all five modes at
+zero cost:
 
 ```bash
-npm test              # unit + integration + client
-npm run test:unit
-npm run test:integration
-npm run test:client
-npm run test:e2e      # Playwright
-npm run test:coverage # enforces the thresholds
+python fake_mesh.py &                                        # :8899
+
+MESH_API_KEY=rsk_fake MESH_BASE_URL=http://127.0.0.1:8899/v1 \
+  python -m uvicorn backend.main:app --port 8000
+
+curl -N -X POST localhost:8000/api/council \
+  -H 'Content-Type: application/json' \
+  -d '{"query":"Why is the sky blue?"}'
 ```
 
-**No test makes a real network call to MeshAPI, GitHub, or any model.** The suite needs no API key.
+---
 
-- **Unit** — pure logic. Config validation, the adapter's retry/timeout classification (over msw-intercepted HTTP), council fan-out helpers, chairman parsing, path containment, branch sanitisation, planner validation, cost math, redaction.
-- **Integration** — a real Express app, real Mongo via `mongodb-memory-server`, and the fake adapter. Includes a full Code+PR run against a **throwaway git repo with a bare origin on disk**, so pushes are real pushes that simply go to a directory instead of github.com.
-- **Component** — React Testing Library, including an explicit XSS test asserting a `<script>` payload in model output renders inert.
-- **E2E** — Playwright against the built client with `USE_FAKE_LLM=true`.
+## How the council works
 
-The fake adapter (`server/tests/fixtures/fakeLlm.js`) is scriptable per model: canned content, injected latency, thrown errors, hangs that trigger real timeouts, fail-then-recover, and token-stream simulation. That is what makes the council's interesting cases — one member down, one hanging, all down — expressible as tests rather than as hopes.
+1. **First opinions** — every member answers in parallel, independently.
+2. **Peer review** — each member ranks the others' answers. Rankings are
+   aggregated with Borda counting into a leaderboard.
+3. **Final answer** — the chairman gets the question, every answer and the
+   rankings, and writes the answer you should have got the first time. It streams
+   as it is written.
+
+### Anonymisation is more than relabelling
+
+Models sign their work — *"As Claude, I'd argue…"*, *"I'm ChatGPT, so…"* — and a
+reviewer who can tell whose answer it is stops judging on merit. Stage 2
+therefore assigns neutral labels (`Response A/B/C`) **and scrubs identity out of
+the bodies**: vendor names, model families, namespaced ids like
+`anthropic/claude-sonnet-4.5`, and phrases like *"as a large language model
+trained by…"*.
+
+It is conservative in the other direction too — tokens that appear in model ids
+but are ordinary English (`mini`, `pro`, `code`, `vision`) are left alone, so
+real prose survives. Two tests pin this: one on the function, one asserting the
+*actual Stage 2 prompts* contain no brand names while the substance survives.
+
+### When things break
+
+The council degrades instead of failing:
+
+- a member errors → that seat is marked failed, the run continues
+- a member is unreachable → the configured `FALLBACK_MODEL` stands in, labelled
+- **the chairman dies** → you get the peer-ranked winner's answer, clearly
+  flagged as unsynthesised
+- a reviewer returns unparseable JSON → its votes are *excluded*, never guessed
+
+Streaming deliberately has **no** fallback: once tokens have reached your screen,
+swapping models mid-answer would splice two voices into one message, so a
+mid-stream failure is reported as a failure with the partial text kept.
 
 ---
 
-## Migrating from the old `server.js`
+## Code + PR mode
 
-The pre-2.0 app was seven files: a `node:http` server with one `POST /api/chat` route, a hardcoded `openai/gpt-4o`, static file serving, and conversation history living in a browser-side array.
+Describe a change; each member proposes a complete implementation; they rank each
+other blind; the chairman merges the best into one patch. Then it can open a PR.
 
-| Then                                                                     | Now                                                                                                                                                      |
-| ------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `MESHAPI_KEY` in code, `MESH_API_KEY` in `.env.example`                  | **`MESH_API_KEY` only.** Validated at boot; the old spelling no longer satisfies the requirement, and a test pins that.                                  |
-| `path.join(__dirname, "public", req.url)` served files outside `public/` | Static serving is gone. The client is a built React bundle; the server is JSON and SSE only.                                                             |
-| Model hardcoded, no timeout, no retry                                    | Models and timeouts come from validated config. Every call has an enforced deadline and bounded, jittered retries that fire only for retryable failures. |
-| Browser posted its whole `messages` array each turn                      | Server-side persistence. The client posts only the new turn.                                                                                             |
-| `POST /api/chat`                                                         | `POST /api/conversations/:id/messages`                                                                                                                   |
-
-**If you ran the old version:** `.env` was already gitignored, and no key was ever committed to this repository. If you pasted a key anywhere else while testing, rotate it.
-
-To migrate: copy your `MESH_API_KEY` into the new `.env`, add a `MONGODB_URI`, and run `npm install && npm run dev`. There is no data to migrate — the old version never stored any.
-
----
-
-## Configuration
-
-Every variable is documented in [`.env.example`](.env.example), grouped by area with defaults. Only two are required: `MESH_API_KEY` and `MONGODB_URI`. Bad config fails at boot with the offending variable named, rather than surfacing as a 500 on first request.
+- **Dry run is the default.** Nothing is pushed until you tick *"Open a real
+  pull request"* — you read the patch first.
+- Needs `GITHUB_TOKEN` (scope `repo`) in `.env`.
+- Model output is untrusted input with write access, so paths are validated
+  **before any network call**: `../` traversal, absolute paths, `.git/`,
+  `.env*`, `*.pem`, `id_rsa`, `.ssh/`, `node_modules/`, more than 25 files, or
+  any file over 200 KB are all refused.
+- PR bodies record provenance: the line-up, the chairman, the peer ranking, and
+  a "machine-drafted, review before merging" note.
 
 ---
 
-## Design decisions worth knowing about
+## API
 
-**In-process job queue, not BullMQ + Redis.** Code+PR jobs run in-process with the job record in Mongo as durable state. Redis would buy retries that survive a restart; the same safety comes here from reconciling interrupted jobs at boot, and from the fact that nothing pushes without human approval anyway. Revisit this when the server runs as more than one process — at that point two workers could pick up the same job.
+| Method | Route | Notes |
+|---|---|---|
+| `GET` | `/api/health` | liveness; whether keys are configured |
+| `GET` | `/api/config` | non-secret config for the UI |
+| `GET` | `/api/models` | live Mesh catalogue (falls back to config) |
+| `POST` | `/api/chat` | Chat / Quick / Humanize — **SSE** |
+| `POST` | `/api/council` | the three stages — **SSE** |
+| `POST` | `/api/code-pr` | draft a change, optionally open a PR |
+| `GET` | `/api/conversations` | saved runs |
+| `GET` | `/api/conversations/{id}` | full transcript |
+| `DELETE` | `/api/conversations/{id}` | delete a run |
 
-**Costs are estimates, not billing data.** MeshAPI does not return a price with a completion, so `lib/tokenCost.js` derives cost from a static per-model table. Treat the numbers as an order-of-magnitude guide for the Chat/Quick tradeoff, not an invoice. Prices drift; the table is in one place for that reason.
+Both streaming routes are POSTs, so `EventSource` (GET-only) can't be used — the
+frontend reads the response body as a stream and parses frames itself.
 
-**Rolling summary, not retrieval.** Long conversations are compacted by summarising aged-out turns with the cheap model rather than by embedding and retrieving them. Simpler, and adequate until threads get much longer.
-
-**Branch names are rejected, not sanitised.** Rewriting `a;rm -rf /` into something safe would create a branch nobody asked for and hide the fact that something tried.
+Event types: `run_start`, `delta`, `stage_start`, `stage1_response`,
+`stage2_review`, `stage_skipped`, `stage3_delta`, `stage_complete`,
+`run_complete`, `error`, then `[DONE]`.
 
 ---
 
-## Limitations
+## Tests
 
-Still true after this work:
+```bash
+python -m pytest
+```
 
-- **Single-process job execution.** Two server instances would both run jobs; there is no distributed lock. Fine for one process, not for a horizontally scaled deployment.
-- **No auth.** There are no users and no sessions. Anyone who can reach the API can spend your model budget and open pull requests. Do not expose this to the internet without putting something in front of it.
-- **Token counting is approximate.** ~4 characters per token, not a real tokenizer. Fine for budgeting a context pack; wrong at the margins, especially for non-English text and non-OpenAI models.
-- **Context packing is lexical, not semantic.** Related files are found by grepping for symbols from the task, which reliably finds a named symbol's definition and reliably misses a conceptually related file that shares no vocabulary.
-- **The chairman is one model's opinion.** It can smooth over a disagreement it should have surfaced. The structured `disagreements[]` makes that failure visible, not impossible.
-- **Council cost scales linearly with members.** There is no early exit when the first two members already agree.
-- **Repair rounds regenerate whole files.** A large file with a one-line lint error is rewritten entirely, which is wasteful and can introduce unrelated churn.
-- **No streaming for Code+PR generation.** Progress is reported per stage, not per token, so a long generation looks idle.
+**177 tests, fully offline.** Every Mesh and GitHub call is mocked at the
+transport layer, so no API key is needed and no request leaves your machine.
+Coverage is concentrated where mistakes are expensive:
+
+| File | What it protects |
+|---|---|
+| `test_anonymize.py` | identity leakage, and that ordinary prose survives scrubbing |
+| `test_rankings.py` | messy reviewer JSON; unparseable reviews reported, not scored |
+| `test_mesh_client.py` | retries, fallback, and actionable 401 / 402 errors |
+| `test_streaming.py` | SSE chunk parsing, mid-stream drops, no silent model swap |
+| `test_council.py` | stage order, Stage 2 anonymity in flight, every degraded path |
+| `test_single.py` | Chat / Quick / Humanize prompts, budgets, word counts |
+| `test_sse.py` | framing, error taxonomy, and that failed runs are never saved |
+| `test_github_pr.py` | patch parsing and every rejected dangerous path |
+| `test_api.py` | HTTP surface, persistence, Code+PR dry-run safety |
+| `test_storage.py` | persistence and traversal-safe conversation ids |
+
+---
+
+## Layout
+
+```
+backend/
+  config.py        env-driven settings; no code edits to change models
+  mesh_client.py   Mesh client: retries, fallback, cost, token streaming
+  prompts.py       every prompt in the app, in one place
+  single.py        Chat / Quick / Humanize (one shared code path)
+  council.py       the three-stage orchestrator
+  anonymize.py     Stage 2 identity scrubbing
+  rankings.py      review parsing + Borda aggregation
+  github_pr.py     patch parsing, path guard rails, branch → commit → PR
+  storage.py       JSON conversation persistence
+  sse.py           one SSE envelope and error taxonomy for all modes
+  main.py          FastAPI app
+frontend/          React + Vite, monochrome UI, no web fonts
+tests/             177 offline tests
+fake_mesh.py       dev-only local Mesh stand-in
+```
+
+### Design notes
+
+**No colour, no web fonts.** The interface is a neutral greyscale ramp with
+hierarchy from type weight and hairline borders; states that would normally be
+coloured (cached, fallback, failed) are labelled instead. Typography is the
+system stack, which means zero font requests, no flash of invisible text, and SF
+Pro / SF Mono on Apple hardware. Light and dark follow the OS.
+
+**Perceived speed over benchmarks.** A council run takes 30–60s — that is model
+time, not our code. So Stage 1 answers appear as they land, the chairman's answer
+streams token by token, markdown rendering is lazy-loaded, Code+PR is
+code-split, and token deltas are batched to one React update per animation frame
+rather than one per token.
+
+---
+
+## Troubleshooting
+
+| Symptom | Cause / fix |
+|---|---|
+| `No module named uvicorn` after a successful `pip install` | `pip` and `python` are different interpreters — use a venv, or `python -m pip install -r requirements.txt` |
+| `No module named 'backend'` | run from the repo root, not from a subdirectory |
+| `mesh_key_configured: false` | `.env` missing, or you edited `.env.example` instead |
+| HTTP 402 | Mesh balance empty — top up at meshapi.ai |
+| HTTP 401 | wrong key, or an `rsk_` / `mesh_sk_` mix-up |
+| A model errors with HTTP 400 | that model id isn't on your account — check `/api/models` or the picker |
+| Port already in use | change `PORT` in `.env` (and `VITE_API_TARGET` for the frontend) |
+| Council feels slow | expected: Stage 2 can't start until every member finishes Stage 1 |
